@@ -1,0 +1,199 @@
+{
+  "main": {
+    "id": "7204a2aed8bdf5e0",
+    "type": "split",
+    "children": [
+      {
+        "id": "881e840ebcb60d4f",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "397a48abaf6469db",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {}
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "33e39aedb0629f09",
+    "type": "split",
+    "children": [
+      {
+        "id": "b7633234378fe77e",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "ba7b1296865c75fc",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "5b55ae76f41d082c",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "Shared Controls",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "697310ca3e94a8eb",
+            "type": "leaf",
+            "state": {
+              "type": "starred",
+              "state": {}
+            }
+          },
+          {
+            "id": "8b8991057a35bee7",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {}
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 355.5
+  },
+  "right": {
+    "id": "75bad08b258c7b53",
+    "type": "split",
+    "children": [
+      {
+        "id": "5c59a38454666056",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "4f50af9b50740b41",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": true,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "5a890ecce7f8d9d0",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "634107450974a8bf",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": false
+              }
+            }
+          },
+          {
+            "id": "925c8f42b32cacf1",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {}
+            }
+          }
+        ],
+        "currentTab": 3
+      }
+    ],
+    "direction": "horizontal",
+    "width": 339.5
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "canvas:新建白板": false,
+      "switcher:打开快速切换": false,
+      "graph:查看关系图谱": false,
+      "daily-notes:打开/创建今天的日记": false,
+      "templates:插入模板": false,
+      "command-palette:打开命令面板": false,
+      "markdown-importer:打开 Markdown 格式转换器": false,
+      "workspaces:管理工作区布局": false
+    }
+  },
+  "active": "397a48abaf6469db",
+  "lastOpenFiles": [
+    "01_理论/01_通识理论.md",
+    "01_理论/02_kubernetes架构.md",
+    "02_工具/01_Minikube.md",
+    "02_工具/02_K3S.md",
+    "02_工具/image/Pasted image 20230908160631.png",
+    "02_工具/02_K3S",
+    "03_kubectl/01_总览.md",
+    "kubectl/未命名",
+    "03_kubectl",
+    "02_工具/image",
+    "02_工具",
+    "1/image/Pasted image 20230908131638.png",
+    "资料.md",
+    "1/image/Pasted image 20230908132059.png",
+    "1/image/Pasted image 20230908131941.png",
+    "1/image/Pasted image 20230908131702.png",
+    "image",
+    "01_理论/image",
+    "Chapter_05_02_MLAIBigData_ArchitectureFramework_TCOMigration/Chapter_05_05_AWS_Well-Architected_Framework.md",
+    "00_资料/WhitePaper/AWS-Certified-Cloud-Practitioner_Exam-Guide.pdf",
+    "00_资料/学习视频和 他人笔记.md",
+    "00_资料/官方Exam-Guide.md",
+    "00_资料/刷题.md",
+    "00_资料/WhitePaper/总览.md",
+    "00_资料/AWS服务名的缩写 initialism.md",
+    "00_资料/AWS-Certified-Cloud-Practitioner_Exam-Guide.pdf",
+    "00_资料",
+    "00_资料/image/Pasted image 20230601181916.png",
+    "Chapter_02_01_CloudArchitecture_ManagementAndDevelopersTools/Chapter_02_03_Shared_Responsibility_Model.md",
+    "Chapter_04_02_Goverance_Provisioning/Chapter_04_04_Goverance_管理方法.md",
+    "Chapter_03_TechnolgyOverview/Chapter_03_TechnologiesOverview.md",
+    "Chapter_01_02_DigitalTransformation_GlobalInfrastructur/Chapter_01_04_GlobalInfrastructure.md",
+    "Chapter_06_01_BillingAndPricing/Chapter_06_01_BillingAndPricing.md",
+    "Chapter_02_01_CloudArchitecture_ManagementAndDevelopersTools/Chapter_02_02_Management_And_Developers Tools.md",
+    "Chapter_05_01_Serverless_WindowsOnAWS_Logging/Chapter_05_03_logging.md",
+    "Chapter_04_01_Identity_ApplicationIntegration_Container/Chapter_04_01_Identity.md",
+    "Chapter_06_02_Security/Chapter_06_02_Security.md",
+    "Chapter_03_02_AWS_Services_Database_Network/Chapter_03_04_Network.md",
+    "Chapter_01_01_CloudConcepts/Chapter_01_02_GetStartet.md",
+    "Chapter_03_01_AWS_Services_Compute_Storage/Chapter_03_01_Compute.md",
+    "Chapter_01_01_CloudConcepts/Chapter_01_01_Cloud_Concepts.md",
+    "Chapter_06_02_Security/image/Pasted image 20230523001520.png",
+    "Chapter_06_02_Security/image/Pasted image 20230523001449.png",
+    "Chapter_06_02_Security/image/Pasted image 20230523001348.png",
+    "Chapter_06_02_Security/image/Pasted image 20230523001323.png"
+  ]
+}
