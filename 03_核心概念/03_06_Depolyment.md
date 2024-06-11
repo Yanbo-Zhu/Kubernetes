@@ -1,68 +1,119 @@
 
-# 1 Pod 容器集
+# 1 Depolyment 
 
-**Pod** 是包含一个或多个容器的容器组，是 Kubernetes 中创建和管理的最小对象。
+在kubernetes中，Pod是最小的控制单元，但是kubernetes很少直接控制Pod，一般都是通过Pod控制器来完成的。Pod控制器用于pod的管理，确保pod资源符合预期的状态，当pod的资源出现故障时，会尝试进行重启或重建pod。
+sda
 
-Pod 是可以在 Kubernetes 中创建和管理的、最小的可部署的计算单元。
-
-Pod（就像在鲸鱼荚或者豌豆荚中）是一组（一个或多个） 容器； 这些容器共享存储、网络、以及怎样运行这些容器的声明。 Pod 中的内容总是并置（colocated）的并且一同调度，在共享的上下文中运行。 Pod 所建模的是特定于应用的 “逻辑主机”，其中包含一个或多个应用容器， 这些容器相对紧密地耦合在一起。 在非云环境中，在相同的物理机或虚拟机上运行的应用类似于在同一逻辑主机上运行的云应用。
-
-除了应用容器，Pod 还可以包含在 Pod 启动期间运行的 Init 容器。 你也可以在集群支持临时性容器的情况下， 为调试的目的注入临时性容器。
+在kubernetes中Pod控制器的种类有很多，本章节只介绍一种：Deployment。
 
 
-Pod 有以下特点：
+![](image/Pasted%20image%2020240611160938.png)
 
-- Pod是kubernetes中**最小的调度单位****（**原子单元**）**，Kubernetes直接管理Pod而不是容器。
-- 同一个Pod中的容器总是会被自动安排到集群中的**同一节点**（物理机或虚拟机）上，并且**一起调度**。
-- Pod可以理解为运行特定应用的“逻辑主机”，这些容器共享存储、网络和配置声明(如资源限制)。
-- 每个 Pod 有唯一的 IP 地址。 **IP地址分配给Pod**，在同一个 Pod 内，所有容器共享一个 IP 地址和端口空间，Pod 内的容器可以使用`localhost`互相通信。
-
----
-
-例如，你可能有一个容器，为共享卷中的文件提供 Web 服务器支持 (Web Server)，以及一个单独的 "边车 (sidercar)" 容器负责从远端更新这些文件 (File Puller)，如下图所示：
-
-Web Server 和 File Puller, 共享同一个Volumen 里面的文件 
+## 1.1 命令式操作
 
 
+```yaml
+# 1 命令格式: kubectl create deployment 名称  [参数] 
+# 2 --image  指定pod的镜像
+# 3 --port   指定端口
+# 4 --replicas  指定创建pod数量
+# 5 --namespace  指定namespace
+[root@master ~]# kubectl run nginx --image=nginx:latest --port=80 --replicas=3 -n dev
+deployment.apps/nginx created
 
-![](https://cdn.nlark.com/yuque/0/2022/svg/28915315/1663812948001-3b8ae10e-1a30-4f56-b465-502201528156.svg)
 
-## 1.1 创建和管理Pod
+# 6 查看创建的Pod
+[root@master ~]# kubectl get pods -n dev
+NAME                     READY   STATUS    RESTARTS   AGE
+nginx-5ff7956ff6-6k8cb   1/1     Running   0          19s
+nginx-5ff7956ff6-jxfjt   1/1     Running   0          19s
+nginx-5ff7956ff6-v6jqw   1/1     Running   0          19s
 
-```shell
-# 创建容器 
-kubectl run mynginx --image=nginx:1.22   // 使用 nginx 1.22 版本
+# 7 查看deployment的信息
+[root@master ~]# kubectl get deploy -n dev
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE
+nginx   3/3     3            3           2m42s
 
-# 查看Pod
-kubectl get pod
+# 8 UP-TO-DATE：成功升级的副本数量
+# 9 AVAILABLE：可用副本的数量
+[root@master ~]# kubectl get deploy -n dev -o wide
+NAME    READY UP-TO-DATE  AVAILABLE   AGE     CONTAINERS   IMAGES              SELECTOR
+nginx   3/3     3         3           2m51s   nginx        nginx:latest        run=nginx
 
-# 描述
-kubectl describe pod mynginx
-
-# 查看Pod的运行日志
-kubectl logs mynginx
-
-# 显示pod的IP和运行节点信息
-kubectl get pod -owide
-
-# 使用Pod的ip+pod里面运行容器的端口
-curl 10.42.1.3
-
-#在容器中执行
-kubectl exec mynginx -it -- /bin/bash
-kubectl get po --watch
-
-# -it 交互模式   -it -- /bin/bash, 把 要在交互模式中使用到的命令 写在 -- 后面  
-# --rm 退出后删除容器，多用于执行一次性任务或使用客户端
-kubectl run mynginx --image=nginx -it --rm -- /bin/bash 
-
-# 删除某个pod
-kubectl delete pod mynginx
-# 强制删除
-kubectl delete pod mynginx --force
+# 10 查看deployment的详细信息
+[root@master ~]# kubectl describe deploy nginx -n dev
+Name:                   nginx
+Namespace:              dev
+CreationTimestamp:      Wed, 08 May 2021 11:14:14 +0800
+Labels:                 run=nginx
+Annotations:            deployment.kubernetes.io/revision: 1
+Selector:               run=nginx
+Replicas:               3 desired | 3 updated | 3 total | 3 available | 0 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  25% max unavailable, 25% max 违规词汇
+Pod Template:
+  Labels:  run=nginx
+  Containers:
+   nginx:
+    Image:        nginx:latest
+    Port:         80/TCP
+    Host Port:    0/TCP
+    Environment:  <none>
+    Mounts:       <none>
+  Volumes:        <none>
+Conditions:
+  Type           Status  Reason
+  ----           ------  ------
+  Available      True    MinimumReplicasAvailable
+  Progressing    True    NewReplicaSetAvailable
+OldReplicaSets:  <none>
+NewReplicaSet:   nginx-5ff7956ff6 (3/3 replicas created)
+Events:
+  Type    Reason             Age    From                   Message
+  ----    ------             ----   ----                   -------
+  Normal  ScalingReplicaSet  5m43s  deployment-controller  Scaled up replicaset nginx-5ff7956ff6 to 3
+  
+# 11 删除 
+[root@master ~]# kubectl delete deploy nginx -n dev
+deployment.apps "nginx" deleted
 ```
 
-![](https://cdn.nlark.com/yuque/0/2022/png/28915315/1663814727899-c31f2117-d540-48fc-93dc-e004dbf1abfb.png)
+
+## 1.2 配置式操作
+
+创建一个deploy-nginx.yaml，内容如下: 
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: dev
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      run: nginx
+  template:
+    metadata:
+      labels:
+        run: nginx
+    spec:
+      containers:
+      - image: nginx:latest
+        name: nginx
+        ports:
+        - containerPort: 80
+          protocol: TCP
+```
+
+
+然后就可以执行对应的创建和删除命令了
+
+创建：kubectl create -f deploy-nginx.yaml
+删除：kubectl delete -f deploy-nginx.yaml
+
 
 
 # 2 Depolyment部署 和 ReplucaSet副本集
@@ -184,4 +235,5 @@ kubectl rollout undo deployment/nginx-deployment --to-revision=2
 ![](image/Pasted%20image%2020230915145125.png)
 
 ![](image/Pasted%20image%2020230915145658.png)
+
 

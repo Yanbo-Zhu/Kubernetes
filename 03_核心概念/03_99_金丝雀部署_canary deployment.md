@@ -113,16 +113,18 @@ spec:
 
 ![](https://cdn.nlark.com/yuque/0/2022/png/28915315/1663903932448-7f620838-0457-4100-8a45-feea360f0d94.png)
 
-- 调整比例
 
+
+- 调整比例
 待稳定运行一段时间后，扩大试用范围，将部署的v2版本数量调整为3，v1和v2的数量都是3个。
 
 ```
 kubectl scale deployment/deploy-v2-canary --replicas=3 -n=dev
 ```
 
-- 下线旧版本
 
+
+- 下线旧版本
 最后下线所有v1版本，所有服务升级为v2版本。
 
 ```
