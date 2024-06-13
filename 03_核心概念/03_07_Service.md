@@ -107,13 +107,13 @@ curl nginx-service:80
 # 4 创建Service对象
 
 
-## 4.1 创建集群内部可访问的Service
+## 4.1 创建集群内部可访问的Service: --type=ClusterIP
 
 用 --type=ClusterIP
 或者根本不加 --type, 因为默认就是 ClusterIP 
 
 
-### 4.1.1 例子1: --type=ClusterIP
+### 4.1.1 例子1
 
 kubectl get svc 是固定的, svc 代表要去 get 某个 service ,  这个 service 的名字 就是 svc-nginx1
 
