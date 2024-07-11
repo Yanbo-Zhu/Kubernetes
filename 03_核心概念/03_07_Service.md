@@ -42,10 +42,106 @@ Service 对应的 Pod 集合通常是通过选择算符来确定的。
 - 还有一个 kubernetes 自带的 对象: 
 
 
+# 2 分类
 
-# 2 访问Service
+
+![](image/Pasted%20image%2020240711170952.png)
+
+ClusterlP(默认)
+- Used for communication between applications inside k8s cluster (Example: Frontend application accessing backend application)
+- 在集群的内部 IP 上公开 Service 。这种类型使得 Service 只能从集群内访问。不能从 Cluster外部进行访问
+
+NodePort
+- Used for accessing applications outside of of k8s cluster using Worker Node Ports (Example: Accessing Frontend application on browser) 
+- 使用 NAT 在集群中每个选定 Node 的相同端口上公开 Service 。使用`<NodeIP>:<NodePort>` 从集群外部访问 Service。是 ClusterIP 的超集。
+- 通过每个节点上的IP和静态端口NodePort暴露服务。 Nodeport服务会路由到自动创建的ClusterIP服务
+
+LoadBalancer
+- Primarily for Cloud Providers to integrate with their Load Balancer services (Example: AWS Elastic Load Balancer)
+- 在当前云中创建一个外部负载均衡器(如果支持的话)，并为 Service 分配一个固定的外部 IP 。是 NodePort 的超集。
+- 使用云提供商的负载均衡器向外部暴露服务。 外部负载均衡器可以将流量路由到自动创建的NodePort服务和ClusterIP服务商。 
+
+Ingress 
+- Ingress is an advanced load balancer which provides Context path based routing, SSL, SSL Redirect and many more (Example: AWS ALB)
+
+externalName
+- To access externally hosted apps in k8s cluster (Example: Access AWS RDS Database endpoint by application present inside k8s cluster)
+- 通过返回带有该名称的 CNAME 记录，使用任意名称(由 spec 中的`externalName`指定)公开 Service 。不使用代理。这种类型需要 `kube-dns` 的 v1.7 或更高版本。
+- 通过返回CName和对应值， 可以将服务映射到externalName字段的内容， 例如， foo.bar.example.com, 无需创建任何类型代理 
+
+
+
+## 2.1 ClusterIP 
+
+Cluster IP doesn't actually exist on any host, or anywhere.
+ClusterIP 是不存在的 虚拟的 ip地址 
+
+Each node runs a 'kube-proxy' container.
+每个节点中都用一个 kube-proxy 这个 container
+
+kube-proxy creates iptables rules on each host to redirect ClusterlP to pod(s) IPs:
+kube-proxy 会创造 iptables rules 在每个 host 中 （就是 node 中若干个hosts）, iptables rules 中储存的都是 ClusterIP . 然后这些hosts 就是知道了 其他pod 的 ClusterIP, 这样的话就可以导过去了
+
+![](image/Pasted%20image%2020240711152646.png)
+
+![](image/Pasted%20image%2020240711153029.png)
+
+----
+
+Iptables的弱点 
+
+![](image/Pasted%20image%2020240711153100.png)
+
+
+## 2.2 NodePort
+
+NodePort Service
+• To access our application outside of k8s cluster, we can use NodePort service.
+• Exposes the Service on each Worker Node's IP at a static port (nothing but NodePort). A ClusterIP Service, to which the NodePort Service routes, is automatically created.
+• Port Range: 30000-32767
+
+![](image/Pasted%20image%2020240711172003.png)
+
+
+访问流程 
+- Kube proxy forwards traffic to the nodePort service
+- nodePort service clusterlP service (automatically created when creating the nodePort service)
+- ClusterIP load balances as usual
+
+![](image/Pasted%20image%2020240711171742.png)
+
+
+
+## 2.3 LoadBalancer 
+
+$ kubectl run nginx --image=nginx --replicas 3 --port=80
+$ kubectl expose deployment nginx --type=LoadBaIancer
+$ kubectl get services -o=wide
+
+![](image/Pasted%20image%2020240711153545.png)
+
+
+可以看出 Service Type 是 LoadBalancer , 通过 annotations指明这个LoadBalancer的类型， 为 nlb
+![](image/Pasted%20image%2020240711153751.png)
+
+![](image/Pasted%20image%2020240711172116.png)
+
+## 2.4 Ingress
+
+![](image/Pasted%20image%2020240711172201.png)
+
+![](image/Pasted%20image%2020240711172219.png)
+
+
+
+
+# 3 访问Service
 
 ![](image/image%201.png)
+
+![](image/Pasted%20image%2020240711171453.png)
+
+
 
 
 某个 service  可能涉及到的 中有 三个  Port 
@@ -58,6 +154,18 @@ Service 对应的 Pod 集合通常是通过选择算符来确定的。
 - targetPort 
     - 是 Pod 中运行程序 用来监听的端口 
     - 是这个  Pod 的 Port
+
+We can expose an application running on a set of PODs using different types of Services available in k8s.
+• ClusterlP
+• NodePort
+• LoadBalancer
+
+NodePort Service
+• To access our application outside of k8s cluster, we can use NodePort service.
+• Exposes the Service on each Worker Node's IP at a static port (nothing but NodePort).
+A ClusterIP Service, to which the NodePort Service routes, is automatically created.
+• Port Range: 30000-32767
+
 
 
 ```sh
@@ -77,7 +185,18 @@ kubectl run nginx-test --image=nginx:1.22 -it --rm -- sh
 curl nginx-service:80
 ```
 
-# 3 kubectl expose 的使用 
+## 3.1 访问流程 
+
+- Kube proxy forwards traffic to the nodePort service
+- nodePort service clusterlP service (automatically created when creating the nodePort service)
+- ClusterIP load balances as usual
+
+![](image/Pasted%20image%2020240711171742.png)
+
+
+
+
+# 4 kubectl expose 的使用 
 
 `[root@master ~]# kubectl expose deployment/nginx-deployment --name=svc-nginx1 --type=ClusterIP --port=80 --target-port=80 -n dev`
 
@@ -92,7 +211,7 @@ curl nginx-service:80
 
 
 
-## 3.1 --type: Service 的 Type的 取值
+## 4.1 --type: Service 的 Type的 取值
 
 - ClusterIP：
     - 默认情况下, 如果没有指定 serciveType, 自动分配到的 就是 这个 service type 
@@ -104,16 +223,16 @@ curl nginx-service:80
 - [ExternalName](https://kubernetes.io/zh-cn/docs/concepts/services-networking/service/#externalname)：将集群外部的网络引入集群内部。
 - [LoadBalancer](https://kubernetes.io/zh-cn/docs/concepts/services-networking/service/#loadbalancer)：使用云提供商的负载均衡器向外部暴露服务。
 - 
-# 4 创建Service对象
+# 5 创建Service对象
 
 
-## 4.1 创建集群内部可访问的Service: --type=ClusterIP
+## 5.1 创建集群内部可访问的Service: --type=ClusterIP
 
 用 --type=ClusterIP
 或者根本不加 --type, 因为默认就是 ClusterIP 
 
 
-### 4.1.1 例子1
+### 5.1.1 例子1
 
 kubectl get svc 是固定的, svc 代表要去 get 某个 service ,  这个 service 的名字 就是 svc-nginx1
 
@@ -146,7 +265,7 @@ svc-nginx1   ClusterIP   10.109.179.231   <none>        80/TCP    3m51s   run=ng
 
 
 
-### 4.1.2 例子2
+### 5.1.2 例子2
 
 
 ```sh
@@ -188,8 +307,7 @@ ClusterIP 代表为集群内部的IP,  集群内部, 都可以通过 10.43.228.1
 
 
 
-
-## 4.2 创建集群外部也可访问的Service: --type=NodePort 
+## 5.2 创建集群外部也可访问的Service: --type=NodePort 
 
 ```sh
 # 上面创建的Service的type类型为ClusterIP，这个ip地址只用集群内部可访问
@@ -227,7 +345,7 @@ kubectl expose deployment/nginx-deployment \
 
 
 
-# 5 删除  service 
+# 6 删除  service 
 
 ```sh
 [root@master ~]# kubectl delete svc svc-nginx-1 -n dev 
@@ -235,7 +353,7 @@ service "svc-nginx-1" deleted
 ```
 
 
-# 6 配置方式
+# 7 配置方式
 
 创建一个svc-nginx.yaml，内容如下：
 
