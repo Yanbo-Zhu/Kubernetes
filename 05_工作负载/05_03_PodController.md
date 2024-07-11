@@ -1331,14 +1331,28 @@ daemonset.apps "pc-daemonset" deleted
 
 # 6 StatefulSet (sts)
 
-概述
-
 ● Stateful 翻译为 有状态的 。
 ● Deployment 部署的应用称为无状态应用，StatefulSet 部署的应用称为有状态应用。
 ● 无状态应用：网络可能会变（IP 地址）、存储可能会变（卷）、顺序可能会变（启动的顺序）。应用场景：业务代码，如：使用 SpringBoot 开发的商城应用的业务代码。
 ● 有状态应用：网络不变、存储不变、顺序不变。应用场景：中间件，如：MySQL 集群、Zookeeper 集群、Redis 集群、MQ 集群
 
-## 6.1 StatefulSet 使用场景和限制
+StatefulSet 是用来管理有状态应用的工作负载API对象 
+StatefulSet 用来管理某Pod集合的部署和扩缩, 并未这些Pod提供持久存储和持久标识符 
+==StatefulSet 表示一组具有唯一持久身份和稳定主机名的Pod, 任何指定StatefulSet Pod的状态信息和其他的弹性数据都放在与该StatefulSet关联的永久性 磁盘储存空间里面==
+
+![](image/Pasted%20image%2020240711195430.png)
+
+![](image/Pasted%20image%2020240711200103.png)
+
+
+## 6.1 StatefulSet Components
+
+A Headless Service 
+A StatefulSet
+A Persistent Volume
+
+
+## 6.2 StatefulSet 使用场景和限制
 
 ![](image/56.webp)
 
@@ -1348,7 +1362,7 @@ daemonset.apps "pc-daemonset" deleted
     - 有序的、优雅的部署和缩放：按顺序地增加副本、减少副本，并在减少副本时执行清理。
     - 有序的、自动的滚动更新：按顺序自动地执行滚动更新。
 
-## 6.2 部署 StatefulSet
+## 6.3 部署 StatefulSet
 
 1
 创建 StatefulSet
@@ -1411,7 +1425,7 @@ curl nginx-svc
 
 kubectl delete -f k8s-sts.yaml
 
-## 6.3 Pod 的管理策略
+## 6.4 Pod 的管理策略
 
 StatefulSet 的 Pod 的管理策略（podManagementPolicy）分为：OrderedReady（有序启动，默认值） 和 Parallel（并发一起启动）。
 
@@ -1463,7 +1477,7 @@ spec:
 ```
 
 
-## 6.4 分区更新
+## 6.5 分区更新
 
 - StatefulSet 的更新策略：
     - OnDelete：删除之后才更新。
