@@ -6,6 +6,8 @@ sda
 
 在kubernetes中Pod控制器的种类有很多，本章节只介绍一种：Deployment。
 
+> Deployment能够确保Prometheus的Pod能够按照预期的状态在集群中运行，而Pod实例可能随机运行在任意节点上
+
 
 ![](image/Pasted%20image%2020240611160938.png)
 
