@@ -109,7 +109,7 @@ kubectl -n kubernetes-dashboard describe secret $(kubectl -n kubernetes-dashboar
 在登录页面上输入上面的token
 访问地址：https://192.168.65.100:30009 。
 
-![](image/Pasted%20image%2020240610191030.png)
+![](../98_Addons/image/Pasted%20image%2020240610191030.png)
 
 ![image-20200520144548997](https://gitee.com/yooome/golang/raw/main/22-k8s%E8%AF%A6%E7%BB%86%E6%95%99%E7%A8%8B-%E8%B0%83%E6%95%B4%E7%89%88/Kubenetes.assets/image-20200520144548997.png)
 
@@ -123,7 +123,7 @@ kubectl -n kubernetes-dashboard describe secret $(kubectl -n kubernetes-dashboar
 
 
 
-![](image/Pasted%20image%2020240610191047.png)
+![](../98_Addons/image/Pasted%20image%2020240610191047.png)
 
 **查看**
 
