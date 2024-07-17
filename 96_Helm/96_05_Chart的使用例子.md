@@ -262,3 +262,122 @@ helm uninstall RELEASE_NAME
 helm uninstall nginx-demo
 ```
 
+# 4 创建一个 Chart模板的流程 
+
+1 
+创建一个 Chart 模板
+helm create mychart
+
+
+2 
+
+- 默认 mychart/templates/ 目录下，会存在一些文件：
+    - `NOTES.txt`: chart 的 帮助文本。这会在用户执行 `helm install` 时展示给他们。
+    - `deployment.yaml`: 创建Kubernetes [工作负载](https://kubernetes.io/docs/user-guide/deployments/)的基本清单。
+    - `service.yaml`: 为你的工作负载创建一个 [service终端](https://kubernetes.io/docs/user-guide/services/)基本清单。
+    - `_helpers.tpl`: 放置可以通过 char t复用的模板辅助对象。
+
+
+
+
+3 现在我们将 templates 目录下的文件全部删除
+rm -rf mychart/templates/*
+在实际的生产级别的 chart ，基础版本的 chart 信息还是很有用的，此处只是防止干扰而全部删除。
+
+
+
+4 在 template 目录下创建一个 configmap.yaml 文件，用于创建 ConfigMap 对象。
+
+vi mychart/templates/configmap.yaml
+
+```
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: mychart-configmap
+  namespace: default
+data:
+  myvalue: "Hello World"
+```
+
+
+5 安装 Chart 
+helm install demo mychart
+
+这样安装当然没有问题，Helm 读取这个模板的时候会原模原样的传递给 k8s ，毕竟我们之前使用 kubectl apply -f xxx.yaml 也是这么写的。
+
+
+
+6 我们可以查看 Helm 实际加载的模板
+helm get manifest demo
+
+- 可以注意到，每个文件都是以 `---` 开头（YAML 文件的开头），然后是自定生成的注释行，表示那个模板文件生成了这个 YAML 文档。
+- 现在，我们就可以看到 YAML 数据确实是 configmap.yaml 文件中的内容、
+
+
+7  卸载
+helm uninstall demo
+
+
+8 
+Helm 的功能当然不能就这么点，模板文件 configmap.yaml 中的 `metadata.name` 目前是硬编码，不是很好
+
+```
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: mychart-configmap
+  namespace: default
+data:
+  myvalue: "Hello World"
+```
+
+
+将他修改为 vi mychart/templates/configmap.yaml
+
+```
+
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ .Release.Name }}-configmap # {{ .Release.Name }}
+  namespace: default
+data:
+  myvalue: "Hello World"
+  
+```
+
+
+注意：由于 DNS 系统的限制，name:字段长度限制为 63 个字符，所以 helm install [NAME] [CHART] 中的 NAME 不要太长。
+
+- `{{ .Release.Name }}-configmap` 中的 `{{ xxx }}` 是模板语法，很像 Vue 中的插值语法。
+- 模板命令 `{{ .Release.Name }}` 将发布名称注入了模板，值作为了一个名称空间对象传递给了模板，用点（`.`）分隔每个名称空间的元素。
+- `Release`前面的点表示从作用域最顶层的命名空间开始（稍后会谈作用域）。这样`.Release.Name`就可解读为 `通过顶层名称空间开始查找 Release对象，然后在其中找 Name 对象` 。
+- `Release`是一个 Helm 的内置对象。稍后会更深入地讨论。但现在足够说明它可以显示从库中赋值的发布名称。
+
+
+9 
+安装 Chart ，查看模板命令的结果
+helm install demo1 mychart
+
+
+
+10 
+查看 Helm 实际加载的模板
+
+helm get manifest demo1
+
+注意：此时 configmap.yaml 文件的 metadata.name 是 demo1-configmap 而不是原来的 mychart-configmap 。
+
+
+
+11
+k8s 还有 dry-run（干跑），Helm 当然也有这个功能，可能加速模板的构建速度（我们想测试模板渲染的内容但是又不想安装实际应用，只会将模板渲染的内容输出到控制台上）
+
+helm install --dry-run demo3 mychart/
+
+注意：helm 干跑命令仅仅用来查看模板渲染的结果，不能保证 k8s 会正常接收生成的模板。
+
+
+
+

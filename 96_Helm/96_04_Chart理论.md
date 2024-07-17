@@ -4,9 +4,15 @@
 - Helm 最核心的就是 Chart 模板，即模板化的 K8s manifests 文件。
 - 它本质上就是一个 Go 的 template 模板。Helm 在 Go template 模板的基础上，增加了很多东西。如一些自定义的元数据信息、扩展的库以及一些类似于编程形式的工作流，例如条件语句、管道等等。这些东西都会使得我们的模板变得更加丰富。
 
-# 2 Chart入门 
+Helm采用了Go语言的模板来编写chart。chart是Helm的应用打包格式，是一系列用于描述k8s资源相关文件的集合，由一组文件和目录构成，通常整个chart被打成tar包，而且标注上版本信息，便于Helm部署。  
+其中最重要的是模板，模板中定义了 Kubernetes 各类资源的配置信息，Helm 在部署时通过 values.yaml 实例化模板。
 
- Chart 的文件结构
+单个的 chart 可以非常简单，只用于部署一个服务，比如 Memcached；chart 也可以很复杂，部署整个应用，比如包含 HTTP Servers、 Database、消息中间件、cache 等。
+
+Helm 使用 Chart 对应用程序进行描述，它使用 Go Template 对应用部署所需的 YAML 进行抽象，形成应用部署模板，在需要进行部署时，可以编写 yaml 为模板中的变量进行赋值，也可以在 Helm CLI 的命令行中使用 `--set name=value` 的方式来对简单变量进行赋值，完成赋值之后，可以选择使用 `helm template` 指令将 Chart + Value 的组合渲染成为 YAML 供 `kubectl` 使用，也可以使用 `helm install` 直接通过 Tiller 进行安装。
+
+# 2 Chart 的文件结构
+
 - chart 是一个组织在文件目录中的集合。==目录名称就是 chart 名称（没有版本信息）==，因此描述 wordpress 的 chart 可以存储在  `wordpress/` 目录中。
 
 ```
@@ -26,123 +32,48 @@ wordpress/
 └── values.yaml # chart 默认的配置值
 ```
 
+- values.yaml （此chart的默认配置值，可以被templates内的yaml文件使用）  
+- chart.yaml (描述 chart 概要信息的YAML 文件，是 chart 所必需的)
+- templates：chart包内各种资源对象的模板。其中最重要的是“deployment.yaml”和“service.yaml”，分别是部署和服务文件. "helpers.tpl"用来定义变量，"ingress.yaml"是对外接口  
+    - templates目录 各类Kubernetes资源的配置模板都放置在这里。Helm会将values.yaml中的参数值注入到模板中生成标准的YAML配置文件
+
+一个 chart 被 Helm 运行后将会生成对应的一个 release；  
+chart 和 release 的关系可以用代码和进程的关系来类比。chart 是打包了 k8s 资源的集合（比如 deployment、service 等），而 release 则是在 Helm 中运行的集合实体（比如 values ）  
+Helm 由客户端和 Tiller 服务器组成。客户端负责管理 chart，服务器负责管理 release。
+
 
 注意点
 - 建议使用 `.yaml` 作为 YAML 文件的后缀，以 `.tpl` 作为 helper 文件的后缀。
 
 
-1 创建一个 Chart 模板
-helm create mychart
 
+![](image/2162364-20210415151743226-2054695773.png)
 
-2 
+## 2.1 Chart.yaml 中的值 
 
-- 默认 mychart/templates/ 目录下，会存在一些文件：
-    - `NOTES.txt`: chart 的 帮助文本。这会在用户执行 `helm install` 时展示给他们。
-    - `deployment.yaml`: 创建Kubernetes [工作负载](https://kubernetes.io/docs/user-guide/deployments/)的基本清单。
-    - `service.yaml`: 为你的工作负载创建一个 [service终端](https://kubernetes.io/docs/user-guide/services/)基本清单。
-    - `_helpers.tpl`: 放置可以通过 char t复用的模板辅助对象。
-
-
-
-
-3 现在我们将 templates 目录下的文件全部删除
-rm -rf mychart/templates/*
-在实际的生产级别的 chart ，基础版本的 chart 信息还是很有用的，此处只是防止干扰而全部删除。
-
-
-
-4 在 template 目录下创建一个 configmap.yaml 文件，用于创建 ConfigMap 对象。
-
-vi mychart/templates/configmap.yaml
-
-```
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: mychart-configmap
-  namespace: default
-data:
-  myvalue: "Hello World"
+apiVersion，name 和 version 是必填项，其他都是可选。
+```yaml
+apiVersion: # 图表API版本，始终为“v1”（必需）
+name: # 图表的名称（必需）
+version: # Chart的版本号，版本号必须符合 SemVer 2：http://semver.org/(语义化版本规范)（必需）
+kubeVersion: # 一系列兼容的Kubernetes版本（可选）
+description: # Chart的简要描述，本项目的一句话描述（可选）
+keywords:
+  - # 有关此项目的关键字列表，便于检索（可选）
+home: # 此项目主页的URL（可选）
+sources:
+  - # 指向此项目源代码的URL列表（可选）
+maintainers: # 维护人员信息(可选)
+  - name: # 维护者名称（每个维护者必须填写）
+    email: # 维护者的电子邮件（每个维护者可选）
+    url: # 维护者的URL（每个维护者可选）
+engine: gotpl # 模板引擎的名称（可选，默认为gotpl）
+icon: # 要用作图标的SVG或PNG图像的URL（可选）
+appVersion: # 包含的应用程序版本（可选）。这不必是SemVer
+deprecated: # 此“chart”是否已弃用（可选，布尔值）
+tillerVersion: 此“chart”所需的“Tiller”版本。这应该表示为SemVer范围：“>2.0.0”（可选）
 ```
 
-
-5 安装 Chart 
-helm install demo mychart
-
-这样安装当然没有问题，Helm 读取这个模板的时候会原模原样的传递给 k8s ，毕竟我们之前使用 kubectl apply -f xxx.yaml 也是这么写的。
-
-
-
-6 我们可以查看 Helm 实际加载的模板
-helm get manifest demo
-
-- 可以注意到，每个文件都是以 `---` 开头（YAML 文件的开头），然后是自定生成的注释行，表示那个模板文件生成了这个 YAML 文档。
-- 现在，我们就可以看到 YAML 数据确实是 configmap.yaml 文件中的内容、
-
-
-7  卸载
-helm uninstall demo
-
-
-8 
-Helm 的功能当然不能就这么点，模板文件 configmap.yaml 中的 `metadata.name` 目前是硬编码，不是很好
-
-```
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: mychart-configmap
-  namespace: default
-data:
-  myvalue: "Hello World"
-```
-
-
-将他修改为 vi mychart/templates/configmap.yaml
-
-```
-
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: {{ .Release.Name }}-configmap # {{ .Release.Name }}
-  namespace: default
-data:
-  myvalue: "Hello World"
-  
-```
-
-
-注意：由于 DNS 系统的限制，name:字段长度限制为 63 个字符，所以 helm install [NAME] [CHART] 中的 NAME 不要太长。
-
-- `{{ .Release.Name }}-configmap` 中的 `{{ xxx }}` 是模板语法，很像 Vue 中的插值语法。
-- 模板命令 `{{ .Release.Name }}` 将发布名称注入了模板，值作为了一个名称空间对象传递给了模板，用点（`.`）分隔每个名称空间的元素。
-- `Release`前面的点表示从作用域最顶层的命名空间开始（稍后会谈作用域）。这样`.Release.Name`就可解读为 `通过顶层名称空间开始查找 Release对象，然后在其中找 Name 对象` 。
-- `Release`是一个 Helm 的内置对象。稍后会更深入地讨论。但现在足够说明它可以显示从库中赋值的发布名称。
-
-
-9 
-安装 Chart ，查看模板命令的结果
-helm install demo1 mychart
-
-
-
-10 
-查看 Helm 实际加载的模板
-
-helm get manifest demo1
-
-注意：此时 configmap.yaml 文件的 metadata.name 是 demo1-configmap 而不是原来的 mychart-configmap 。
-
-
-
-11
-k8s 还有 dry-run（干跑），Helm 当然也有这个功能，可能加速模板的构建速度（我们想测试模板渲染的内容但是又不想安装实际应用，只会将模板渲染的内容输出到控制台上）
-
-helm install --dry-run demo3 mychart/
-
-注意：helm 干跑命令仅仅用来查看模板渲染的结果，不能保证 k8s 会正常接收生成的模板。
 
 
 # 3 内置对象
