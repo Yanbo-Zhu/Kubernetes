@@ -1,157 +1,7 @@
 
 https://izsk.me/2020/07/01/Kubernetes-kustomize/
 
-# 1 目录结构
-
-app-kustomize是一个代码git， 以golang为主，这里只列出了跟kustomize有关的文件,其它代码文档没有直接关系就先省略了.
-```
-app-kustomize  
-	deploy  
-		base  
-			config.yaml  
-			deployment.yaml  
-			service.yaml  
-			kustomization.yaml   
-		overlay  
-			1box  
-				1box-custom-env.yaml  
-				kustomization.yaml  
-			prod  
-				deployment-patch.yaml  
-				kustomization.yaml
-```
-
-```
-├── base
-│   ├── deployment.yaml
-│   ├── kustomization.yaml
-│   └── service.yaml
-└── overlays
-    ├── dev
-    │   ├── kustomization.yaml
-    │   └── patch.yaml
-    ├── prod
-    │   ├── kustomization.yaml
-    │   └── patch.yaml   # 里面指定源文件以及对应的一些转换文件，例如 patch 等
-    └── staging
-        ├── kustomization.yaml
-        └── patch.yaml
-
-```
-
-这里对上述的文件做个简要说明:
-
-`base`翻译过来就是基础的意思， 里面的资源可以理解为默认的配置或者是基础配置
-
-`overlay`目录下则可以根据不同环境建立不同的文件夹, 比如我有一个测试环境,那么可以叫1box(这个名字随便), 还有一个生产环境，就叫prod, 这两个目录下都包含有`kustomeization.yaml`, 同时，两个目录下都可以通过**打patch或者覆盖**的方式来对base目录下对应的资源进行更新, 这也是overlay的由来.
-
-使用`kustomize build ~/ldap/overlays/1box`来生成合并后的整体配置文件
-再通过`kustomize build ~/ldap/overlays/1obx | kubectl apply -f -`进行发布到对应的环境中去
-
-当然,这个流程就可以跟CI/CD进行结合使用了. 是不是非常简单.
-
-其它的配置文件不需要过多解释了.
-
-
-----
-`cat base/deployment.yaml`
-
-```
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: p-expoter-kustom
-spec:
-  replicas: 1
-  template:
-    spec:
-      containers:
-      - args:
-        - -TEST
-        - "789"
-        image: localhost:5055/p-expoter:master-36cd406f
-        imagePullPolicy: IfNotPresent
-        name: p-expoter
-        volumeMounts:
-        - mountPath: "/etc/config/config.yml"
-          name: demo-config
-          readOnly: true
-          subPath: config.yml
-      imagePullSecrets:
-      - name: realty
-      volumes:
-      - secret:
-          items:
-          - key: alertmanager.yaml
-            path: config.yml
-          secretName: p-expoter-senserealty-cms
-        name: demo-config
-```
-
-
----
-`cat base/service.yaml`
-```
-apiVersion: v1  
-kind: Service  
-metadata:  
-  name: p-expoter  
-spec:  
-  ports:  
-  - name: http  
-    port: 80  
-    targetPort: 80  
-  type: ClusterIP
-```
-
-
----
-`cat config.yaml`
-
-```
-apiVersion: secrets.mz.com/v1alpha1  
-kind: ConfigMapSecret  
-metadata:  
-  name: p-expoter-senserealty-cms  
-spec:  
-  template:  
-    metadata:  
-      name: p-expoter-senserealty-cms   
-    data:  
-      alertmanager.yaml: |  
-          global:  
-            resolve_timeout: 5m  
-            mongodb_password: $(MONGODB_PASSWORD)  # 在 Var中定义  
-            redis_password: $(REDIS_PASSWORD)  
-            # special_how: $(CONFIGMAP_HOW)   
-            # special_type: $(CONFIGMAP_TYPE)  
-          route:  
-            receiver: default  
-            group_by: ["alertname", "job", "team"]  
-            group_wait: 30s  
-  vars:  
-    - name: MONGODB_PASSWORD  
-      secretValue: # 引用secret   
-        name: senserealty-secret-data # secret 名字  
-        key: mongodb_password # secret key  
-    - name: REDIS_PASSWORD   
-      secretValue:  
-        name: senserealty-secret-data  
-        key: redis_password  
-    # - name: CONFIGMAP_HOW # 引用configmap  
-    #   configMapValue:  
-    #     name: special-config-hmmg28f4kd  
-    #     key: special.how  
-    # - name: CONFIGMAP_TYPE  
-    #   configMapValue:  
-    #     name: special-config-hmmg28f4kd  
-    #     key: special.type
-```
-
-
-以上配置文件都是很常用的资源对象， 这里解释一下config.yaml并不是我们常用的configmap.yaml类型, 而是使用了CRD类型，主要是为了实现敏感信息的加密保存在git上.这块不是这篇post的重点,感兴趣的话, 大家可参考这篇[post](https://izsk.me/2020/06/28/Kubernetes-configmap-reference-var-from-secret/) ，目前可直接把这个当做为等同于configmap
-
-# 2 kustomization.yaml 
+# 1 kustomization.yaml 
 
 可以发现在base目录或者是overlay目录下都有一个kustomization.yaml文件，该文件是kustomize的核心， 包含了需要部署的资源.
 
@@ -179,7 +29,7 @@ resources:
 ```
 
 
-# 3 kustomize功能特性表_字段总览
+# 2 kustomize功能特性表_字段总览
 
 apiVsersion 和 kind 为两个固定字段
 
@@ -207,28 +57,21 @@ https://kubernetes.io/zh-cn/docs/tasks/manage-kubernetes-objects/kustomization/
 | configurations        | []string                                                                                                      | 列表中每个条目都应能解析为一个包含 [Kustomize 转换器配置](https://github.com/kubernetes-sigs/kustomize/tree/master/examples/transformerconfigs) 的文件 |
 | crds                  | []string                                                                                                      | 列表中每个条目都应能够解析为 Kubernetes 类别的 OpenAPI 定义文件                                                                                    |
 
+
+
+
 - `resources` 表示 k8s 资源的位置，这个可以是一个文件，也可以指向一个文件夹，读取的时候会按照顺序读取，路径可以是相对路径也可以是绝对路径，如果是相对路径那么就是相对于 `kustomization.yml`的路径
-    
 - `crds` 和 `resources` 类似，只是 `crds` 是我们自定义的资源
-    
 - `namespace` 为所有资源添加 namespace
-    
 - `images` 修改镜像的名称、tag 或 image digest ，而无需使用 patches
-    
 - `replicas` 修改资源副本数
-    
 - `namePrefix` 为所有资源和引用的名称添加前缀
-    
 - `nameSuffix` 为所有资源和引用的名称添加后缀
-    
 - `patches` 在资源上添加或覆盖字段，Kustomization 使用 `patches` 字段来提供该功能。
-    
 - `patchesJson6902` 列表中的每个条目都应可以解析为 kubernetes 对象和将应用于该对象的 [JSON patch](https://tools.ietf.org/html/rfc6902)。
     
 - `patchesStrategicMerge` 使用 strategic merge patch 标准 Patch resources.
-    
 - `vars` 类似指定变量
-    
 - `commonAnnotations` 为所有资源加上 `annotations` 如果对应的 key 已经存在值，这个值将会被覆盖
 ```
 commonAnnotations:
@@ -246,18 +89,33 @@ kind: Kustomization
 commonLabels:
   app: bingo
 ```
+
 - `configMapGenerator` 可以生成 config map，列表中的每一条都会生成一个 configmap
-    
 - `secretGenerator` 用于生成 secret 资源
-    
 - `generatorOptions` 用于控制 `configMapGenerator` 和 `secretGenerator` 的行为
-    
 
 
-# 4 kustomization.yaml中可以生成资源的字段
+
+The following configuration options are available for Kustomize:
+- `namePrefix` is a prefix appended to resources for Kustomize apps
+- `nameSuffix` is a suffix appended to resources for Kustomize apps
+- `images` is a list of Kustomize image overrides
+- `replicas` is a list of Kustomize replica overrides
+- `commonLabels` is a string map of additional labels
+- `labelWithoutSelector` is a boolean value which defines if the common label(s) should be applied to resource selectors and templates.
+- `forceCommonLabels` is a boolean value which defines if it's allowed to override existing labels
+- `commonAnnotations` is a string map of additional annotations
+- `namespace` is a Kubernetes resources namespace
+- `forceCommonAnnotations` is a boolean value which defines if it's allowed to override existing annotations
+- `commonAnnotationsEnvsubst` is a boolean value which enables env variables substition in annotation values
+- `patches` is a list of Kustomize patches that supports inline updates
+- `components` is a list of Kustomize components
 
 
-## 4.1 configMapGenerator
+# 3 kustomization.yaml中可以生成资源的字段
+
+
+## 3.1 configMapGenerator
 https://kubernetes.io/zh-cn/docs/tasks/manage-kubernetes-objects/kustomization/
 
 这两者具有相同的功能, 可以从文件中直接生成configmap或者是secret
@@ -490,7 +348,7 @@ spec:
 ```
 
 
-## 4.2 secretGenerator
+## 3.2 secretGenerator
 
 
 你可以基于文件或者键值偶对来生成 Secret。要使用文件内容来生成 Secret， 在 `secretGenerator` 下面的 `files` 列表中添加表项。 
@@ -607,7 +465,7 @@ EOF
 ```
 
 
-## 4.3 generatorOptions
+## 3.3 generatorOptions
 
 所生成的 ConfigMap 和 Secret 都会包含内容哈希值后缀。 这是为了确保内容发生变化时，所生成的是新的 ConfigMap 或 Secret。 要禁止自动添加后缀的行为，用户可以使用 generatorOptions。 除此以外，为生成的 ConfigMap 和 Secret 指定贯穿性选项也是可以的。
 
@@ -647,9 +505,9 @@ metadata:
 
 
 
-# 5 kustomization.yaml中可以组织和定制资源的字段
+# 4 kustomization.yaml中可以组织和定制资源的字段
 
-## 5.1 resources组织
+## 4.1 resources组织
 这个字段包含需要部署的资源文件， 这个应该很容易理解
 
 一种常见的做法是在项目中构造资源集合并将其放到同一个文件或目录中管理。 Kustomize 提供基于不同文件来组织资源并向其应用补丁或者其他定制的能力。
@@ -709,12 +567,110 @@ EOF
 `kubectl kustomize ./` 所得到的资源中既包含 Deployment 也包含 Service 对象。
 
 
+## 4.2 Patches
+
+patches` 在资源上添加或覆盖字段，Kustomization 使用 `patches` 字段来提供该功能。
+
+Patches are a way to kustomize resources using inline configurations in Argo CD applications. patches follow the same logic as the corresponding Kustomization. Any patches that target existing Kustomization file will be merged.
+
+This Kustomize example sources manifests from the `/kustomize-guestbook` folder of the `argoproj/argocd-example-apps` repository, and patches the `Deployment` to use port 443 on the container. 
+
+
+1 Kustomization 的 manifest 
+```
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: kustomize-inline-example
+namespace: test1
+resources:
+  - https://github.com/argoproj/argocd-example-apps//kustomize-guestbook/
+patches:
+  - target:
+      kind: Deployment
+      name: guestbook-ui
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/ports/0/containerPort
+        value: 443
+```
+
+2 直接写到 argo 的 application 的 spec 
+和上面的 用到kusomitzation 的 manifest 起到同等效果 
+
+This Application does the equivalent using the inline kustomize.patches configuration. 
+```
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kustomize-inline-guestbook
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  destination:
+    namespace: test1
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    path: kustomize-guestbook
+    repoURL: https://github.com/argoproj/argocd-example-apps.git
+    targetRevision: master
+    kustomize:
+      patches:
+        - target:
+            kind: Deployment
+            name: guestbook-ui
+          patch: |-
+            - op: replace
+              path: /spec/template/spec/containers/0/ports/0/containerPort
+              value: 443
+```
 
 
 
+---
+
+The inline kustomize patches work well with `ApplicationSets`, too. Instead of maintaining a patch or overlay for each cluster, patches can now be done in the `Application` template and utilize attributes from the generators. 
+
+For example, with [`external-dns`](https://github.com/kubernetes-sigs/external-dns/) to set the [`txt-owner-id`](https://github.com/kubernetes-sigs/external-dns/blob/e1adc9079b12774cccac051966b2c6a3f18f7872/docs/registry/registry.md?plain=1#L6) to the cluster name.
+```
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: external-dns
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+  - clusters: {}
+  template:
+    metadata:
+      name: 'external-dns'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/kubernetes-sigs/external-dns/
+        targetRevision: v0.14.0
+        path: kustomize
+        kustomize:
+          patches:
+          - target:
+              kind: Deployment
+              name: external-dns
+            patch: |-
+              - op: add
+                path: /spec/template/spec/containers/0/args/3
+                value: --txt-owner-id={{.name}}   # patch using attribute from generator
+      destination:
+        name: 'in-cluster'
+        namespace: default
+
+```
 
 
-## 5.2 patchesStrategicMerge
+
+## 4.3 patchesStrategicMerge
 
 补丁文件（Patches）可以用来对资源执行不同的定制。 Kustomize 通过 `patchesStrategicMerge` 和 `patchesJson6902` 支持不同的打补丁机制。 `patchesStrategicMerge` 的内容是一个文件路径的列表，其中每个文件都应可解析为 [策略性合并补丁（Strategic Merge Patch）](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-api-machinery/strategic-merge-patch.md)。 补丁文件中的名称必须与已经加载的资源的名称匹配。 建议构造规模较小的、仅做一件事情的补丁。 例如，构造一个补丁来增加 Deployment 的副本个数；构造另外一个补丁来设置内存限制。
 
@@ -722,7 +678,7 @@ EOF
 patchesStrategicMerge则主要是用于**overlay下的kustomization.yaml中**, 用于使用打patch的方式将该字段指定的文件合并到base目录下对应的内容上.
 
 
-### 5.2.1 例子1
+### 4.3.1 例子1
 
 比如, 现在需要1box环境中，在base声明的deployment.yaml的基础上，给`p-expoter`容器增加一个环境变量
 那么就新增overlay/1box/1box-custom-env.yaml
@@ -781,7 +737,7 @@ patchesStrategicMerge:
 比如修改replicas, 如果在`kustomization.yaml中修改成了2， 在`patchesStrategicMerge`又修改成了10` , 结果以`kustomization.yaml`中的为准，也就是最终replicas = 2
 
 
-### 5.2.2 例子2
+### 4.3.2 例子2
 
 ```shell
 # 创建 deployment.yaml 文件
@@ -869,7 +825,7 @@ spec:
             memory: 512Mi
 ```
 
-## 5.3 patchesJson6902
+## 4.4 patchesJson6902
 
 并非所有资源或者字段都支持策略性合并补丁。为了支持对任何资源的任何字段进行修改， Kustomize 提供通过 `patchesJson6902` 来应用 [JSON 补丁](https://tools.ietf.org/html/rfc6902)的能力。 为了给 JSON 补丁找到正确的资源，需要在 `kustomization.yaml` 文件中指定资源的组（group）、 版本（version）、类别（kind）和名称（name）。 例如，为某 Deployment 对象增加副本个数的操作也可以通过 `patchesJson6902` 来完成：
 
@@ -944,7 +900,7 @@ spec:
 ```
 
 
-# 6 image
+# 5 image
 
 除了补丁之外，Kustomize 还提供定制容器镜像或者将其他对象的字段值注入到容器中的能力，并且不需要创建补丁。 例如，你可以通过在 `kustomization.yaml` 文件的 `images` 字段设置新的镜像来更改容器中使用的镜像。
 
@@ -1005,6 +961,42 @@ spec:
         ports:
         - containerPort: 80
 ```
+
+
+# 6 components
+
+Kustomize [components](https://github.com/kubernetes-sigs/kustomize/blob/master/examples/components.md) encapsulate both resources and patches together. They provide a powerful way to modularize and reuse configuration in Kubernetes applications.
+
+Outside of Argo CD, to utilize components, you must add the following to the `kustomization.yaml` that the Application references. For example:
+```
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+...
+components:
+- ../component
+```
+
+
+
+With support added for components in `v2.10.0`, you can now reference a component directly in the Application:
+```
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: application-kustomize-components
+spec:
+  ...
+  source:
+    path: examples/application-kustomize-components/base
+    repoURL: https://github.com/my-user/my-repo
+    targetRevision: main
+
+    # This!
+    kustomize:
+      components:
+        - ../component  # relative to the kustomization.yaml (`source.path`).
+```
+
 
 
 # 7 kustomization.yaml中贯穿性字段
@@ -1180,6 +1172,8 @@ spec:
         image: nginx
         name: my-nginx
 ```
+
+
 
 
 
