@@ -104,6 +104,25 @@ ca.crt:     1025 bytes
 kubectl -n kubernetes-dashboard describe secret $(kubectl -n kubernetes-dashboard get secret | grep admin-user | awk '{print $1}')
 
 
+
+----
+方法2
+
+To log on to the Kubernetes dashboard, you need a long-living token which you may fetch using kubectl as configured in the previous section. 
+
+1. Run the following command to fetch the token:  
+    `kubectl get secret admin-user -n kubernetes-dashboard -o jsonpath={".data.token"} | base64 -d`
+2. Copy the displayed token and store it. It can be used to access the Kubernetes Dashboard from now on. 
+3. Open a browser and connect to the Kubernetes host. Replace $kubernetes_host with the FQDN of the host.  
+    `https://$kubernetes_host:31443`  
+    Ignore the warning regarding the certificate.
+4. Paste the token into the respective field.
+    1. ![](image/image-2023-12-29_14-47-13.png)
+
+
+You are now connected as cluster admin to the Kubernetes Dashboard. Note that in this role, you may not only monitor, but also reconfigure and inherently misconfigure / destroy resources in the Kubernetes cluster. On the other hand, this is a Dedicated Single Node Cluster, hence the only system that may be harmed is this dedicated cluster and the IVU.plan environment within.
+
+
 ## 1.4 通过浏览器访问Dashboard的UI
 
 在登录页面上输入上面的token
