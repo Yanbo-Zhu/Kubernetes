@@ -1,3 +1,15 @@
+> render Helm charts with Kustomize.
+
+https://github.com/kubernetes-sigs/kustomize/blob/master/examples/chart.md
+
+# 1 总览 
+
+Kustomize is [built](https://kubectl.docs.kubernetes.io/references/kustomize/kustomization) from _generators_ and _transformers_; the former make kubernetes YAML, the latter transform said YAML.
+Kustomize, via the `helmCharts` field, has the ability to use the [`helm`](https://helm.sh) command line program in a subprocess to inflate a helm chart, generating YAML as part of (or as the entirety of) a kustomize base.
+This YAML can then be modified either in the base directly (transformers always run _after_ generators), or via a kustomize overlay.
+Either approach can be viewed as [last mile](https://testingclouds.wordpress.com/2018/07/20/844/) modification of the chart output before applying it to a cluster.
+The example below arbitrarily uses the [_minecraft_](https://artifacthub.io/packages/helm/minecraft-server-charts/minecraft) chart pulled from the [artifact hub](https://artifacthub.io) chart repository.
+
 
 
 在一些包含YAML资源文件（部署、服务、映射等）的目录中，创建kustomization文件。
@@ -9,8 +21,187 @@
 4. **覆盖 Helm 图表**: Kustomize 可以覆盖现有的 Helm 图表，并使用 `HelmChartInflationGenerator` 覆盖一组自定义值。例如，可以使用 Kustomize 部署 Bitnami 的 NGINX Helm 图表，并覆盖默认值以提供自定义的 `nginx.conf` 和自定义的首页。
 
 
+# 2 
 
-# 1 ChartInflator插件
+## 2.1 Preparation
+
+This example defines the `helm` command as
+
+```
+helmCommand=${MYGOBIN:-~/go/bin}/helmV3
+```
+
+This value is needed for testing this example in CI/CD. A user doesn't need this if their binary is called `helm` and is on their shell's `PATH`.
+
+Make a place to work:
+
+```
+DEMO_HOME=$(mktemp -d)
+mkdir -p $DEMO_HOME/base $DEMO_HOME/dev $DEMO_HOME/prod
+```
+
+## 2.2 Define some variants
+
+1 _development_ variant.
+
+Define a kustomization representing your _development_ variant.
+
+This could involve any number of kustomizations (see other examples), but in this case just add the name prefix '`dev-`' to all resources:
+
+```
+cat <<'EOF' >$DEMO_HOME/dev/kustomization.yaml
+namePrefix:  dev-
+resources:
+- ../base
+EOF
+```
+
+
+
+2 production variant.
+
+Likewise define a _production_ variant, with a name prefix '`prod-`':
+
+```
+cat <<'EOF' >$DEMO_HOME/prod/kustomization.yaml
+namePrefix:  prod-
+resources:
+- ../base
+EOF
+```
+
+These two variants refer to a common base.
+
+
+3  base variant
+
+Define this base the usual way by creating a `kustomization` file:
+
+```
+cat <<'EOF' >$DEMO_HOME/base/kustomization.yaml
+helmCharts:
+- name: minecraft
+  includeCRDs: false
+  valuesInline:
+    minecraftServer:
+      eula: true
+      difficulty: hard
+      rcon:
+        enabled: true
+  releaseName: moria
+  version: 3.1.3
+  repo: https://itzg.github.io/minecraft-server-charts
+EOF
+```
+
+The only thing in this particular file is a `helmCharts` field, specifying a single chart.
+
+The `valuesInline` field overrides some native chart values.
+
+The `includeCRDs` field instructs Helm to generate `CustomResourceDefinitions`. See [the Helm documentation](https://helm.sh/docs/chart_best_practices/custom_resource_definitions/) for details.
+
+Check the directory layout:
+
+```
+tree $DEMO_HOME
+```
+
+Expect something like:
+
+> ```
+> /tmp/whatever
+> ├── base
+> │  └── kustomization.yaml
+> ├── dev
+> │  └── kustomization.yaml
+> └── prod
+>    └── kustomization.yaml
+> ```
+
+### 2.2.1 Helm related flags
+
+
+Attempt to build the `base`:
+```
+cmd="kustomize build --helm-command $helmCommand $DEMO_HOME/base"
+if ($cmd); then
+   echo "Build should fail!" && false  # Force test to fail.
+else
+   echo "Build failed because no --enable-helm flag (desired outcome)."
+fi
+```
+
+
+1 `--enable-helm`
+This `build` fails and complains about a missing `--enable-helm` flag.
+
+The flag `--enable-helm` exists to have the user acknowledge that kustomize is running an external program as part of the `build` step. It's like the `--enable-plugins` flag, but with a helm focus.
+
+2 `--helm-command`
+The flag `--helm-command` has a default value (`helm` of course) so it's not suitable as an enablement flag. A user with `helm` on their `PATH` need not awkwardly specify `'--helm-command helm'`.
+
+
+3  定义一个新的命令 
+Given the above, define a helper function to run `kustomize` with the flags required for `helm` use in this demo:
+
+```
+function kustomizeIt {
+  kustomize build \
+    --enable-helm \
+    --helm-command $helmCommand \
+    $DEMO_HOME/$1
+}
+```
+
+### 2.2.2 Build the base and the variants
+
+1 
+Now build the `base`:
+
+```
+kustomizeIt base
+```
+
+This works, and you see an inflated chart complete with a `Secret`, `Service`, `Deployment`, etc.
+
+
+2  生成的 yaml 会放到 base 文件夹 下的 名字为charts 这个 subdirectory 文件夹
+As a side effect of this build, kustomize pulled the chart and placed it in the `charts` subdirectory of the base. Take a look:
+```
+tree $DEMO_HOME
+```
+
+If the chart had already been there, kustomize would not have tried to pull it.
+
+
+3  改变生成的yaml 文件的 自动放置的位置 
+
+To change the location of the charts, use this in your kustomization file:
+
+> ```
+> helmGlobals:
+>  chartHome: charts
+> ```
+
+Change `charts` as desired, but it's best to keep it in (or below) the same directory as the `kustomization.yaml` file. If it's outside the kustomization root, the `build` command will fail unless given the flag `'--load-restrictor=none'` to disable file loading restrictions.
+
+
+3  对比 两个文件的区别 
+
+Now build the two variants `dev` and `prod` and compare their differences:
+
+```
+diff <(kustomizeIt dev) <(kustomizeIt prod) | more
+```
+
+This shows so-called _last mile hydration_ of two variants made from a common base that happens to be generated from a helm chart.
+
+
+
+
+# 3 其他
+
+## 3.1 ChartInflator插件
 
 >用写好kustomization 文件, 渲染某个已经存在的Helm Charts, 使得这个charts中添加一些内容
 
@@ -96,7 +287,7 @@ $ kustomize build --enable_alpha_plugins .
 正常渲染完成后我们可以看到所有的资源上都被添加了一个 `env: dev` 的标签，这是实时完成的，不需要维护任何额外的文件的。
 
 
-# 2 用单个清单文件定制
+## 3.2 用单个清单文件定制
 
 另一种使用 Kustomize 定制 Chart 的方法是使用 `helm template` 命令来生成一个单一的资源清单，这种方式可以对 Chart 进行更多的控制，但它需要更多的工作来出来处理更新该生成文件的版本控制。
 
@@ -175,7 +366,7 @@ $ kustomize build .
 
 这种方法，需要以某种方式运行 make 命令来生成更新的一体化资源清单文件，另外，要将更新过程与你的 GitOps 工作流整合起来可能有点麻烦。
 
-# 3 使用 Post Rendering 定制
+## 3.3 使用 Post Rendering 定制
 
 **Post Rendering** 是 Helm 3 带来的一个新功能，在前面的2种方法中，Kustomize 是用来处理生成图表清单的主要工具，但在这里，Kustomize 是作为 Helm 的辅助工具而存在的。
 
@@ -208,4 +399,21 @@ $ helm template vault hashicorp/vault --post-renderer ./kustomize-wrapper.sh
 这种方法就是需要管理一个额外的脚本，其余的和第一种方式基本上差不多，只是不使用 Kustomize 的插件，而是直接使用 Helm 本身的功能来渲染上游的 Chart 包。
 
 
+## 3.4 enable Kustomizing Helm charts
+
+It's possible to render Helm charts with Kustomize. Doing so requires that you pass the --enable-helm flag to the kustomize build command. This flag is not part of the Kustomize options within Argo CD. 
+
+If you would like to render Helm charts through Kustomize in an Argo CD application, you have two options: You can either create a custom plugin, or modify the `argocd-cm` ConfigMap to include the `--enable-helm` flag globally for all Kustomize applications:
+
+
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+data:
+  kustomize.buildOptions: --enable-helm
+
+```
 
