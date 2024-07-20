@@ -4,6 +4,8 @@ https://github.com/kubernetes-sigs/kustomize/blob/master/examples/chart.md
 
 # 1 总览 
 
+就是使用kustomize 去不足 由执行helm chart 生成的 Manifest Yaml File
+
 Kustomize is [built](https://kubectl.docs.kubernetes.io/references/kustomize/kustomization) from _generators_ and _transformers_; the former make kubernetes YAML, the latter transform said YAML.
 Kustomize, via the `helmCharts` field, has the ability to use the [`helm`](https://helm.sh) command line program in a subprocess to inflate a helm chart, generating YAML as part of (or as the entirety of) a kustomize base.
 This YAML can then be modified either in the base directly (transformers always run _after_ generators), or via a kustomize overlay.
@@ -22,6 +24,8 @@ The example below arbitrarily uses the [_minecraft_](https://artifacthub.io/pack
 
 
 # 2 
+
+https://github.com/kubernetes-sigs/kustomize/blob/master/examples/chart.md#build-the-base-and-the-variants
 
 ## 2.1 Preparation
 
@@ -195,6 +199,166 @@ diff <(kustomizeIt dev) <(kustomizeIt prod) | more
 ```
 
 This shows so-called _last mile hydration_ of two variants made from a common base that happens to be generated from a helm chart.
+
+
+## 2.3 How does the pull work?
+
+[](https://github.com/kubernetes-sigs/kustomize/blob/master/examples/chart.md#how-does-the-pull-work)
+
+The command kustomize used to download the chart is something like
+
+> ```
+> $helmCommand pull \
+>    --untar \
+>    --untardir $DEMO_HOME/base/charts \
+>    --repo https://itzg.github.io/minecraft-server-charts \
+>    --version 3.1.3 \
+>    minecraft
+> ```
+
+1 
+The first use of kustomize above (when the `base` was expanded) fetched the chart and placed it in the `charts` directory next to the `kustomization.yaml` file.
+```
+kustomizeIt base
+```
+
+
+This chart was reused, _not_ re-fetched, with the variant expansions `prod` and `dev`.
+
+2 
+如果 chart 已经生成了, 再次执行 `kustomizeIt base` 将不会生层一个新文件, 因为 kustomize 没有Cache, 没有识别文件的版本的方式 
+If a chart exists, kustomize will not overwrite it (so to suppress a pull, simply assure the chart is already in your kustomization root). kustomize won't check dates or version numbers or do anything that smells like cache management.
+
+> kustomize is a YAML manipulator. It's not a manager of a cache of things downloaded from the internet.
+
+
+## 2.4 The pull happens once.
+
+如果你修改了 helm chart 中的 values.yaml 中的值,   再次执行 kustomizeIt prod 后, helm chart 对应的信息 mainifest yaml file 会被成功生成出来, 即使之前 老一个版本的 mainifest yaml file  已经被生成出来了. 
+
+
+To show that the locally stored chart is being re-used, modify its _values_ file.
+
+First make note of the password encoded in the production inflation:
+
+```
+test 1 == $(kustomizeIt prod | grep -c "rcon-password: Q0hBTkdFTUUh")
+```
+-c：只打印匹配的行数。
+
+The above command succeeds if the value of the generated password is as shown (`Q0hBTkdFTUUh`).
+
+Now change the password in the local values file:
+
+```
+values=$DEMO_HOME/base/charts/minecraft-3.1.3/minecraft/values.yaml
+
+grep CHANGEME $values
+sed -i 's/CHANGEME/SOMETHING_ELSE/' $values
+grep SOMETHING_ELSE $values
+```
+
+Run the build, and confirm that the same `rcon-password` field in the output has a new value, confirming that the chart used was a _local_ chart, not a chart freshly downloaded from the internet:
+
+```
+test 1 == $(kustomizeIt prod | grep -c "rcon-password: U09NRVRISU5HX0VMU0Uh")
+```
+
+Finally, clean up:
+
+```
+rm -r $DEMO_HOME
+```
+
+## 2.5 Performance
+
+kustomization.yaml 会中给出 一些helm-related fields 比如 
+```
+cat <<'EOF' >$DEMO_HOME/base/kustomization.yaml
+helmCharts:
+- name: minecraft
+  includeCRDs: false
+  valuesInline:
+    minecraftServer:
+      eula: true
+      difficulty: hard
+      rcon:
+        enabled: true
+  releaseName: moria
+  version: 3.1.3
+  repo: https://itzg.github.io/minecraft-server-charts
+EOF
+```
+
+
+
+To recap, the helm-related kustomization fields make kustomize run
+
+> ```
+> helm pull ...
+> helm template ...
+> ```
+
+_as a convenience for the user_ to generate YAML from a helm chart.
+
+Helm's `pull` command downloads the chart. Helm's `template` command inflates the chart template, spitting the inflated template to stdout (where kustomize captures it) rather than immediately sending it to a cluster as `helm install` would.
+
+上文的意思是, 其实在执行 `kustomize build --enable-helm`  之后,   helm pull 和 helm template 会被默认被执行
+
+---
+
+To improve performance, a user can retain the chart after the first pull (first pull 就是 已经 inflate 这个chart 去 生成一个 yaml  file过了 ), and commit the chart to their configuration repository (below the `kustomization.yaml` file that refers to it). kustomize only tries to pull the chart if it's not already there (只有 已经生成的那个 yaml 的manifest 不存在之后,  kustomize 才会 only tries to pull the chart to inflate it and gererate new manifest   ). 
+
+To further improve performance, a user can inflate the chart themselves at the command line, e.g.
+
+> ```
+> helm template {releaseName} \
+>     --values {valuesFile} \
+>     --version {version} \
+>     --repo {repo} \
+>     {chartName} > {chartName}.yaml
+> ```
+
+then commit the resulting `{chartName}.yaml` file to a git repo as a configuration base, mentioning that file as a `resource` in a `kustomization.yaml` file, e.g.
+
+> ```
+> resources:
+> - minecraft_v3.1.3_Chart.yaml
+> ```
+
+
+这时候 kustomize 就会根据 minecraft_v3.1.3_Chart.yaml 去生成的新的 manifest file
+kustomize不会意识到 the Yaml 已经被helm 生成过了 
+
+The user should choose when or if to refresh their local copy of the chart's inflation. kustomize would have no awareness that the YAML was generated by helm, and kustomize wouldn't run `helm` during the `build`. This is analogous to `Go` module vendoring.
+
+
+
+
+### 2.5.1 But it's not really about performance.
+
+ > render Helm charts with Kustomize. 带来的风险是有的
+
+
+Although the `helm` related fields discussed above are handy for experimentation and development, it's best to avoid them in production.
+
+The same argument applies to using _remote_ git URL's in other kustomization fields. Handy for experimentation, but ill-advised in production.
+
+It's irresponsible to depend on a remote configuration that's _not under your control_. Annoying enablement flags like `'--enable-helm'` are intended to _remind_ one of a risk, but offer zero protection from risk. 
+Further, they are useless are reminders, since **annoying things are immediately scripted away and forgotten**, as was done above in the `kustomizeIt` shell function.
+
+
+## 2.6 Best practice
+
+[](https://github.com/kubernetes-sigs/kustomize/blob/master/examples/chart.md#best-practice)
+
+Don't use remote configuration that you don't control in production.
+
+Maintain a _local, inflated fork_ of a remote configuration, and have a human rebase / reinflate that fork from time to time to capture upstream changes.
+
+
+
+
 
 
 
