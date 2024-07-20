@@ -1,4 +1,6 @@
-
+\
+https://helm.sh/zh/docs/chart_best_practices/custom_resource_definitions/
+https://helm.sh/docs/chart_best_practices/custom_resource_definitions/
 
 This section of the Best Practices Guide deals with creating and using Custom Resource Definition objects.
 
