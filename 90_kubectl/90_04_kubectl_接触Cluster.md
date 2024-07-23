@@ -10,17 +10,9 @@
       --adfs-host adfs02.ivu-cloud.com
 
 
-# 2 查看这 aws account 有几个 eks cluster 
-`aws --profile ivu-cloud-e2x eks list-clusters`
-
-先使用aws-adfs login 登录一个aws account 
-
-查看这 aws account 有几个 eks cluster 
-`aws --profile ivu-cloud-e2x eks list-clusters`
 
 
-
-# 3 Check that kubectl is properly configured by getting the cluster state
+# 2 Check that kubectl is properly configured by getting the cluster state
 
 
 https://kubernetes.io/docs/tasks/tools/install-kubectl-windows/
@@ -52,10 +44,10 @@ kubectl cluster-info dump
 ```
 
 
-# 4 连接远程的cluster
+# 3 连接远程的cluster
 
 
-## 4.1 直接登录Cluster所在的host_然后使用kubectl to connect a cluster 
+## 3.1 直接登录Cluster所在的host_然后使用kubectl to connect a cluster 
 
 https://confluence.ivu.de/display/SYS/k8s+Single+Node+Clusters+by+Puppet+for+QS24#k8sSingleNodeClustersbyPuppetforQS24-Gettingstartedwiththek8sSingleNodeCluster
 
@@ -64,11 +56,11 @@ https://confluence.ivu.de/display/SYS/k8s+Single+Node+Clusters+by+Puppet+for+QS2
 3. Use command 'kubectl'
 4. Alternatively, use 'k0s kc' to make use of the command completion.
 
-## 4.2 本地安装kubectl_连接远程的cluster
+## 3.2 本地安装kubectl_连接远程的cluster
 
 先 使用aws-adfs login 登录一个aws account 
 
-### 4.2.1 setting up a kubeconfig
+### 3.2.1 setting up a kubeconfig
 
 To control the cluster with kubectl remotely from another host, perform the following steps.
 
@@ -114,9 +106,10 @@ You are now connected as cluster admin to Kubernetes. Note that in this role, yo
 
 
 
-### 4.2.2 验收
+### 3.2.2 验收
 1 
 在非 `c:\Users\yzh\.kube` 路径下 ,  随便哪个路径下
+执行  kubectl config view, 查到你想访问的 cluster 的  name 
 执行  kubectl config use-context e20-d2034, 得到 output 为 Switched to context "e20-d2034"
 
 然后执行 
@@ -134,6 +127,7 @@ kube-system   kube-proxy-8w4g7                     1/1     Running   0          
 
 2 
 在 `c:\Users\yzh\.kube` 路径下 , 
+执行  kubectl config view, 查到你想访问的 cluster 的  name 
 执行  kubectl config use-context e20-d2034 后, 
 在执行 kubectl get pods -A,   这个 kubectl 使用的 仍然是 `c:\Users\yzh\.kube\config` 中的 配置. 不是 `c:\Users\yzh\.kube\config-e20-d2034 ` 中的 配置
 
@@ -152,7 +146,7 @@ Unable to connect to the server: dial tcp 127.0.0.1:6443: connectex: Es konnte k
 
 
 
-# 5 已经连接到cluster_让探后查用那个身份在操作的 
+# 4 已经连接到cluster_让探后查用那个身份在操作的 
 
 
 It is not always obvious what attributes (username, groups) you will get after authenticating to the cluster. It can be even more challenging if you are managing more than one cluster at the same time.
@@ -161,18 +155,59 @@ There is a `kubectl` subcommand to check subject attributes, such as username, f
 `kubectl auth whoami`.
 
 
-# 6 EKS Cluster 相关 
+# 5 EKS Cluster 相关 
 
 
+## 5.1 查看这 aws account 有几个 eks cluster 
 
-## 6.1 update-kubeconfig
+先使用aws-adfs login 登录一个aws account 
 
+查看这 aws account 有几个 eks cluster 
+`aws --profile ivu-cloud-e2x eks list-clusters`
 
-After setting up a kubeconfig, you should be able to use kubectl with the previously selected cluster:
 
 ```
-➜  ~ aws --profile ivu-cloud-e2x eks update-kubeconfig --name titanic-e2x
-Updated context arn:aws:eks...
+ ⚡ 🦄  aws --profile ivu-cloud-e20 eks list-clusters
+{
+    "clusters": [
+        "eks-dev-staging-e20",
+        "main"
+    ]
+}
+```
+
+## 5.2 Create or update a kubeconfig file for your cluster
+
+https://docs.aws.amazon.com/eks/latest/userguide/create-kubeconfig.html
+
+update-kubeconfig 的命令的说明 
+https://docs.aws.amazon.com/cli/latest/reference/eks/update-kubeconfig.html
+
+```
+aws eks update-kubeconfig --region region-code --name my-cluster
+
+aws --profile ivu-cloud-e2x eks update-kubeconfig --name titanic-e2x
+```
+
+By default, the resulting configuration file is created at the default kubeconfig path (.kube) in your home directory or merged with an existing config file at that location. You can specify another path with the `--kubeconfig` option.
+
+--kubeconfig (string) Optionally specify a kubeconfig file to append with your configuration. By default, the configuration is written to the first file path in the KUBECONFIG environment variable (if it is set) or the default kubeconfig path (.kube/config) in your home directory.
+
+
+
+```
+我用的是 
+aws --profile ivu-cloud-e20 eks update-kubeconfig --name main --kubeconfig c:\Users\yzh\.kube\config-e20-eks-cluster-main
+
+```
+
+生成的
+
+
+
+After setting up a kubeconfig, 
+```
+
 ➜  ~ kubectl get pods -A
 NAMESPACE     NAME                                 READY   STATUS    RESTARTS   AGE
 kube-system   aws-node-dbz57                       1/1     Running   0          4d20h
