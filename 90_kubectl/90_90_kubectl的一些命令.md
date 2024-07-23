@@ -121,4 +121,11 @@ puppet agent --enable
 
 After the next puppet run, the Cluster and the IVU.plan deployment inside will be rebuilt with its original configuration. 
 
+# 2 Shell into the container
+
+To get a shell access to the container running inside the application pod, all you have to do is:
+
+`kubectl exec -ti --namespace <your namespace> <your pod name> -- sh`
+
+This will open a shell inside of your application container. You can now execute any command you need.
 
