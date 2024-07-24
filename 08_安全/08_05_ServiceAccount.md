@@ -39,7 +39,10 @@ Service Account为Pod中的进程和外部用户提供身份信息。所有的ku
 
 # 2 Service Account
 
-上述是来自集群外部的访问，我们可以理解成是User Account，是给kubernetes集群外部用户，例如（系统管理员、用户/租户等）。Service Account而是给运行在Pod的容器、或者Pod使用的身份认证。
+1 user Account 和 Service Account 的区别
+上述是来自集群外部的访问，我们可以理解成是User Account，是给kubernetes集群外部用户，例如（系统管理员、用户/租户等）。
+
+Service Account而是给运行在Pod的容器、或者Pod使用的身份认证。
 
 正常情况下，为了确保kubernetes集群的安全性，Api Server 都会给客户端进行身份认证，但是Pod访问Kubernetes Api Server服务时，也是需要身份认证的。如下图：
 
