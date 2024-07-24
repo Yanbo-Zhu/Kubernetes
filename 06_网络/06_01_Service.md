@@ -32,6 +32,52 @@ TCP  10.97.97.97:80 rr
 
 
 
+## 1.1 小例子
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-nginx
+  labels:
+    run: my-nginx
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+  selector:
+    run: my-nginx
+```
+
+
+上述规约将创建一个 Service，该 Service 会将所有具有标签 run: my-nginx 的 Pod 的 TCP 80 端口暴露到一个抽象的 Service 端口上（targetPort：容器接收流量的端口；port： 可任意取值的抽象的 Service 端口，其他 Pod 通过该端口访问 Service）
+
+
+
+ 创建一个 Nginx Pod
+```
+ apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+spec:
+  selector:
+    matchLabels:
+      run: my-nginx
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        run: my-nginx
+    spec:
+      containers:
+      - name: my-nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+```
+
+
 
 # 2 访问Service
 
@@ -174,7 +220,7 @@ metadata:
   namespace: dev
 spec: 
   replicas: 3
-  selector:
+  selector:  # 注意看这里
     matchLabels:
       app: nginx-pod
   template:
@@ -224,7 +270,7 @@ metadata:
   name: service-clusterip
   namespace: dev
 spec:
-  selector:
+  selector:      # 注意看这里 用来关联对应的Pod
     app: nginx-pod
   clusterIP: 10.97.97.97 # service的ip地址，如果不写，默认会生成一个
   type: ClusterIP
