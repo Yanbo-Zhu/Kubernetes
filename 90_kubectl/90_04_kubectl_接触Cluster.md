@@ -157,7 +157,6 @@ There is a `kubectl` subcommand to check subject attributes, such as username, f
 
 # 5 EKS Cluster 相关 
 
-
 ## 5.1 查看这 aws account 有几个 eks cluster 
 
 先使用aws-adfs login 登录一个aws account 
@@ -194,15 +193,11 @@ By default, the resulting configuration file is created at the default kubeconfi
 --kubeconfig (string) Optionally specify a kubeconfig file to append with your configuration. By default, the configuration is written to the first file path in the KUBECONFIG environment variable (if it is set) or the default kubeconfig path (.kube/config) in your home directory.
 
 
-
 ```
 我用的是 
 aws --profile ivu-cloud-e20 eks update-kubeconfig --name main --kubeconfig c:\Users\yzh\.kube\config-e20-eks-cluster-main
-
 ```
-
-生成的
-
+这个命令会将 elk cluster main 的信息 写入到  `c:\Users\yzh\.kube\config-e20-eks-cluster-main` 中
 
 
 After setting up a kubeconfig, 
@@ -218,4 +213,41 @@ kube-system   ebs-csi-controller-ccd784cbf-w24x4   6/6     Running   0          
 kube-system   ebs-csi-node-j47lj                   3/3     Running   0          4d20h
 kube-system   kube-proxy-8w4g7                     1/1     Running   0          4d20h
 ```
+
+
+## 5.3 Continuous usage
+
+Assumed roles usually expire after a certain time (e.g. 1h). The following bash function may be of help to simplify the process of renewing the session and updating kubeconfig. Add these lines to your shell's rc file.
+
+```
+# call example: refresh-eks-access ivu-cloud-e2x titanic-e2x
+function refresh-eks-access() {
+  aws-adfs login --profile $1
+  aws --profile $1 eks update-kubeconfig --name $2
+}
+```
+
+
+in powershell 
+```
+# call refresh-eks-access ivu-cloud-e20 main
+function refresh-eks-access {
+    param (
+        [string]$Profile,
+        [string]$ClusterName
+    )     
+	aws-adfs login --profile $Profile --no-sspi --region eu-central-1 --adfs-host adfs02.ivu-cloud.com
+    aws --profile $Profile eks update-kubeconfig --name $ClusterName
+}
+```
+
+
+
+The function expects two arguments: profile and cluster-name. Given what was shown in the previous paragraphs, the function may be called like this:
+```
+refresh-eks-access ivu-cloud-e2x titanic-e2x
+refresh-eks-access ivu-cloud-e20 main
+```
+
+
 
