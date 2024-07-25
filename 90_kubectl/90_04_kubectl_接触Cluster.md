@@ -173,6 +173,15 @@ There is a `kubectl` subcommand to check subject attributes, such as username, f
         "main"
     ]
 }
+
+ ⚡ 🦄  aws --profile ivu-cloud-e2x eks list-clusters
+{
+    "clusters": [
+        "dev",
+        "eks-dev-ex"
+    ]
+}
+
 ```
 
 ## 5.2 Create or update a kubeconfig file for your cluster

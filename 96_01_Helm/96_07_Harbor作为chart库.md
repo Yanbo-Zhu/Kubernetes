@@ -14,6 +14,7 @@ https://www.yuque.com/fairy-era/yg511q/ar93ua#f6609716
 ## 1.2 Harbor 核心组件
 
 ![](image/1.webp)
+
 ● Nginx(Proxy)：用于代理 Harbor 的 registry、UI、token 等服务。
 ● db：负责储存用户权限、审计日志、Docker image 分组信息等数据。
 ● UI：提供图形化界面，帮助用户管理 registry 上的镜像, 并对用户进行授权。
