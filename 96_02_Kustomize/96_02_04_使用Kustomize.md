@@ -17,7 +17,7 @@ kubectl apply -k <kustomization 目录>/
 kubectl kustomize <kustomization_directory>
 ```
 
-从print 的结果中可以预览 合成出来的yamlfile 的样子, 但是不会真的生成 那个文件 
+从print 的结果中可以预览 合成出来的yamlfile 的样子, ==但是不会真的生成 那个文件 ==
 
 例子
 执行 执行 `kubectl kustomize ./`depolyment.yaml 
@@ -154,7 +154,7 @@ kubectl get -k ./
 kubectl describe -k ./
 
 
-# 3 `ubectl diff -k ` 比较 Deployment 对象 dev-my-nginx 与清单被应用之后集群
+# 3 `kubectl diff -k ` 比较 Deployment 对象 dev-my-nginx 与清单被应用之后集群
 执行下面的命令来比较 Deployment 对象 dev-my-nginx 与清单被应用之后集群将处于的状态：
 
 ```shell

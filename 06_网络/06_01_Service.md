@@ -339,6 +339,7 @@ kubectl describe svc cluster-ip-svc
 
 ### 5.2.2 Endpoint
 
+> 为什么我们需要Service 关联endpoint 因为 我们需要 endpoint 这个 resource中定义的 ipadrrese 
 
 Endpoint是kubernetes中的一个资源对象，存储在etcd中，用来记录一个service对应的所有pod的访问地址，它是根据service配置文件中selector描述产生的。
 一个Service由一组Pod组成，这些Pod通过Endpoints暴露出来，**Endpoints是实现实际服务的端点集合**。换句话说，service和pod之间的联系是通过endpoints实现的。
@@ -673,6 +674,7 @@ spec:
 
 
 ExternalName类型的Service用于引入集群外部的服务，它通过`externalName`属性指定外部一个服务的地址，==然后在集群内部访问此service就可以访问到外部的服务了。==  但是需要注意目标服务的 `跨域` 问题。
+
 
 ![img](https://gitee.com/yooome/golang/raw/main/22-k8s%E8%AF%A6%E7%BB%86%E6%95%99%E7%A8%8B-%E8%B0%83%E6%95%B4%E7%89%88/Kubenetes.assets/image-20200510113311209.png)
 

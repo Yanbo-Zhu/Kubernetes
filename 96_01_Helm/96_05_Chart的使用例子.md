@@ -1,6 +1,34 @@
 
 
-# 1 使用 chart 部署一个应用
+# 1 helm repo 设置 
+
+Get a list of all of the repos added.
+helm repo list
+
+Update your repos
+helm repo update
+
+ you can list all charts by doing:
+helm search repo
+helm search repo -r ".*"
+
+Or, you can do a case insensitive match on any part of chart name using the following:
+`helm search repo [your_search_string]`
+
+Search for 'nginx' in all of the repos that you have
+helm search repo nginx
+
+
+Finally you can use grep to filter out in a given repo
+helm search repo bitnami | grep nginx
+
+Lists all versions of all charts
+helm search repo -l 
+
+ Lists all versions of all chart names that contain search string
+helm search repo -l [your_search_string]
+
+# 2 使用 chart 部署一个应用
 
 
 1 查找 chart
@@ -50,14 +78,33 @@ helm install db1 stable/mysql
 
 
 
-4 查看 release 列表
+4 查看 charts installed by helm ， 也就是查看 已经安装的release 列表
 ```
 helm list
+
+#show all the charts installed by helm on a K8s?
+helm list --all-namespaces
 
 状态可能是  unknown, deployed, uninstalled, superseded, failed, uninstalling, pending-install, pending-upgrade 或 pending-rollback 。
 ```
 
 ![](image/Pasted%20image%2020240613173355.png)
+
+```
+NAME                            NAMESPACE               REVISION        UPDATED                                   STATUS          CHART                           APP VERSION
+csi-driver-smb                  kube-system             2               2024-07-25 13:31:41.479439887 +0200 CEST  deployed        csi-driver-smb-v1.14.0          v1.14.0    
+haproxy-ingress-controller      ingress-controller      2               2024-07-25 13:31:39.740794487 +0200 CEST  deployed        haproxy-ingress-0.14.5          v0.14.5    
+loki                            loki                    2               2024-07-25 13:31:55.279288948 +0200 CEST  deployed        loki-6.5.2                      3.0.0      
+prometheus                      prometheus              2               2024-07-25 13:33:33.672774513 +0200 CEST  deployed        kube-prometheus-stack-58.5.3    v0.73.2    
+promtail                        promtail                2               2024-07-25 13:31:50.847799126 +0200 CEST  deployed        promtail-6.15.5                 2.9.3      
+[root@e20-d3042b-a01 ~]# helm list --all-namespaces
+NAME                            NAMESPACE               REVISION        UPDATED                                         STATUS          CHART                          APP VERSION
+csi-driver-smb                  kube-system             2               2024-07-25 13:31:41.479439887 +0200 CEST        deployed        csi-driver-smb-v1.14.0         v1.14.0    
+haproxy-ingress-controller      ingress-controller      2               2024-07-25 13:31:39.740794487 +0200 CEST        deployed        haproxy-ingress-0.14.5         v0.14.5    
+loki                            loki                    2               2024-07-25 13:31:55.279288948 +0200 CEST        deployed        loki-6.5.2                     3.0.0      
+prometheus                      prometheus              2               2024-07-25 13:33:33.672774513 +0200 CEST        deployed        kube-prometheus-stack-58.5.3   v0.73.2    
+promtail                        promtail                2               2024-07-25 13:31:50.847799126 +0200 CEST        deployed        promtail-6.15.5                2.9.3 
+```
 
 
 
@@ -79,10 +126,10 @@ helm status RELEASE_NAME
 
 
 
-# 2 安装前自定义chart配置选项
+# 3 安装前自定义chart配置选项
 
 
-## 2.1 概述
+## 3.1 概述
 
 - 自定义选项是因为并不是所有的 chart 都能按照默认配置运行成功，可能会需要一些环境依赖，例如 PV 。
 - 所以我们需要自定义 chart 配置选项，安装过程中有两种方法可以传递配置数据：
@@ -90,7 +137,7 @@ helm status RELEASE_NAME
     - ②`--set`：在命令行上指定替代。如果两种都用，那么`--set`的优先级高。
 
 
-## 2.2 --values 的使用
+## 3.2 --values 的使用
 
 1 先将修改的变量写到一个文件中。
 helm show values stable/mysql > config.yaml
@@ -119,12 +166,12 @@ helm install db stable/mysql -f config.yaml
 可以根据提示，去 Pod 中查看。
 
 
-## 2.3 --set 的使用
+## 3.3 --set 的使用
 
 helm install db --set persistence.storageClass="nfs-client" stable/mysql
 
 
-## 2.4 其他技巧
+## 3.4 其他技巧
 
 1 
 其实，也可以将 chart 包下载下来，查看并修改：
@@ -158,10 +205,10 @@ helm install db http://mirror.azure.cn/kubernetes/charts/mysql-1.6.9.tgz
 
 
 
-# 3 构建一个 chart 
+# 4 构建一个 chart 
 
 
-## 3.1 Chart 的文件结构
+## 4.1 Chart 的文件结构
 
 
 - chart 是一个组织在文件目录中的集合。目录名称就是 chart 名称（没有版本信息），因此描述 wordpress 的 chart 可以存储在  `wordpress/` 目录中。
@@ -184,7 +231,7 @@ wordpress/
 ```
 
 
-## 3.2 其他 
+## 4.2 其他 
 
 1 创建自定义 chart
 ```
@@ -262,7 +309,7 @@ helm uninstall RELEASE_NAME
 helm uninstall nginx-demo
 ```
 
-# 4 创建一个 Chart模板的流程 
+# 5 创建一个 Chart模板的流程 
 
 1 
 创建一个 Chart 模板

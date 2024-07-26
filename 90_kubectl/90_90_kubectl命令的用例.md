@@ -121,11 +121,85 @@ puppet agent --enable
 
 After the next puppet run, the Cluster and the IVU.plan deployment inside will be rebuilt with its original configuration. 
 
-# 2 Shell into the container
+# 2 ssh into the container
+https://kubernetes.io/docs/tasks/debug/debug-application/get-shell-running-container/
+https://www.valewood.org/topics/devops/learn/technology/kubernetes/how-to-ssh-into-a-k8s-pod/
+\
+> The double dash (--) separates the arguments you want to pass to the command from the kubectl arguments.
+> The short options -i and -t are the same as the long options --stdin and --tty
+
+
+## 2.1 Running individual commands in a container 
+
+In an ordinary command window, not your shell, list the environment variables in the running container:
+
+```shell
+kubectl exec shell-demo -- env
+```
+
+Experiment with running other commands. Here are some examples:
+
+```shell
+kubectl exec shell-demo -- ps aux
+kubectl exec shell-demo -- ls /
+kubectl exec shell-demo -- cat /proc/1/mounts
+```
+
+## 2.2 实操
+
+First, ensure you know the name of the pod you want to access. You can list all pods in a namespace with the command: `kubectl get pods -n <namespace>.`
+
+
+
+
+1 if only one container in that pod
 
 To get a shell access to the container running inside the application pod, all you have to do is:
 
+
+```
 `kubectl exec -ti --namespace <your namespace> <your pod name> -- sh`
+kubectl exec -it <pod-name> -n <namespace> -- /bin/bash
+kubectl exec -it <pod-name> -n <namespace> -- /bin/sh
+kubectl exec -it <pod-name> -n <namespace> -- /bin/zsh
+
+```
+
+then you can try something like /bin/sh or /bin/zsh
 
 This will open a shell inside of your application container. You can now execute any command you need.
+
+2 if multiple container in the same pod exists 
+```
+kubectl exec --stdin --tty <pod-name> --container prometheus -n <namespace> -- /bin/bash
+kubectl exec --stdin --tty app-operator-c489b4bc-sqpmf --container kube-prometheus-stack -n default -- /bin/bash
+```
+
+
+
+
+# 3 ssh into node
+
+This kubectl addon is from here. [https://github.com/luksa/kubectl-plugins](https://github.com/luksa/kubectl-plugins). And I have verified that. T
+He provides a provider-agnostic way to get a shell into a worker node if you have cluster-admin privileges.
+There’s no need to manage any ssh keys either.
+kubectl ssh node my-node     # access a node in a multi-node cluster
+
+
+P.S. This is connecting inside of a freshly created pod on the specified node. In that sense, you do not get access to node itself (as you wanted) but (just) a `privileged` pod
+
+
+You can get your node name with the command: kubectl get nodes 
+
+Example usage:
+```
+kubectl ssh node             # access the node in a single-node cluster 
+kubectl ssh node my-node     # access a node in a multi-node cluster
+kubectl ssh node my-node ls   # access a node in a multi-node cluster and execute ls
+
+```
+
+
+
+
 

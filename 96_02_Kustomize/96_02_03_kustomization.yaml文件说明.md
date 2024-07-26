@@ -15,7 +15,7 @@ kind: Kustomization
   
 commonLabels:  
   k8s-app: p-expoter # 会在所有的资源对象上都会加上该label  
-namespace: stage # 会在所有的资源对象上都指定该ns  
+  namespace: stage # 会在所有的资源对象上都指定该ns  
   
 # configMapGenerator:   # secretGenerator  
 # - name: special-config  
