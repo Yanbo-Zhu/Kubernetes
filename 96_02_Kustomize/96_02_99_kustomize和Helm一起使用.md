@@ -4,7 +4,7 @@ https://github.com/kubernetes-sigs/kustomize/blob/master/examples/chart.md
 
 # 1 总览 
 
-就是使用kustomize 去不足 由执行helm chart 生成的 Manifest Yaml File
+就是使用kustomize 去补足 由执行helm chart 生成的 Manifest Yaml File
 
 Kustomize is [built](https://kubectl.docs.kubernetes.io/references/kustomize/kustomization) from _generators_ and _transformers_; the former make kubernetes YAML, the latter transform said YAML.
 Kustomize, via the `helmCharts` field, has the ability to use the [`helm`](https://helm.sh) command line program in a subprocess to inflate a helm chart, generating YAML as part of (or as the entirety of) a kustomize base.
@@ -112,15 +112,17 @@ tree $DEMO_HOME
 
 Expect something like:
 
-> ```
-> /tmp/whatever
-> ├── base
-> │  └── kustomization.yaml
-> ├── dev
-> │  └── kustomization.yaml
-> └── prod
->    └── kustomization.yaml
-> ```
+```
+ /tmp/whatever
+ ├── base
+ │  └── kustomization.yaml
+ ├── dev
+ │  └── kustomization.yaml
+ └── prod
+    └── kustomization.yaml
+```
+
+
 
 ### 2.2.1 Helm related flags
 
@@ -226,7 +228,7 @@ kustomizeIt base
 This chart was reused, _not_ re-fetched, with the variant expansions `prod` and `dev`.
 
 2 
-如果 chart 已经生成了, 再次执行 `kustomizeIt base` 将不会生层一个新文件, 因为 kustomize 没有Cache, 没有识别文件的版本的方式 
+如果 chart 已经生成了, 再次执行 `kustomizeIt base` 将不会生成一个新文件, 因为 kustomize 没有Cache, 没有识别文件的版本的方式 
 If a chart exists, kustomize will not overwrite it (so to suppress a pull, simply assure the chart is already in your kustomization root). kustomize won't check dates or version numbers or do anything that smells like cache management.
 
 > kustomize is a YAML manipulator. It's not a manager of a cache of things downloaded from the internet.
