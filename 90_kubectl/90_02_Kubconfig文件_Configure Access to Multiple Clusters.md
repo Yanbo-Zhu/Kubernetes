@@ -329,13 +329,17 @@ $Env:KUBECONFIG
 
 ## 6.2 Linux 
 
+在 ~/.bashrc add
+
 ```
 export KUBECONFIG="${KUBECONFIG}:config-demo:config-demo-2"
 
 export KUBECONFIG="${KUBECONFIG}:${HOME}/.kube/config"
+
+export KUBECONFIG="${KUBECONFIG}:${HOME}/.kube/config:/mnt/c/Users/yzh/.kube/config-e20-d3042:/mnt/c/Users/yzh/.kube/config-e20-d3042b:/mnt/c/Users/yzh/.kube/config-e20-eks-cluster-main:/mnt/c/Users/yzh/.kube/config-e2x-eks-cluster-dev:/mnt/c/Users/yzh/.kube/config-e2x-eks-cluster-eks-dev-ex"
 ```
 
-
+source ~/.bashrc
 ## 6.3 查看多个kubeconig文件合并的效果 
 
 kubectl config view
