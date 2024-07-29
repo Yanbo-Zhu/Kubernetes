@@ -3,14 +3,42 @@
 # 1 kubectl-plugins
 https://github.com/luksa/kubectl-plugins
 
-1
-其中 [kubectl-ssh](https://github.com/luksa/kubectl-plugins/blob/master/kubectl-ssh "kubectl-ssh")
+## 1.1 kubectl ssh node
 
+Provider-agnostic way of opening a remote shell to a Kubernetes node.
+
+Enables you to access a node even when it doesn't run an SSH server or when you don't have the required credentials. Also, the way you log in is always the same, regardless of what provides the Kubernetes cluster (e.g. Minikube, Kind, Docker Desktop, GKE, AKS, EKS, ...)
+
+You must have cluster-admin rights to use this plugin.
+
+The primary focus of this plugin is to provide access to nodes, but it also provides a quick way of running a shell inside a pod.
+
+Example usage:
+
+```shell
 kubectl ssh node             # access the node in a single-node cluster 
 kubectl ssh node my-node     # access a node in a multi-node cluster
+```
 
-2 
-kubectl really get all
+You can get your node name with the `kubectl get nodes` command.
+
+You can also execute a command inside the node and quit like with command below:
+
+```shell
+kubectl ssh node my-node ls   # access a node in a multi-node cluster and execute ls
+```
+
+## 1.2 kubectl force delete
+
+Force deletes an object by removing its finalizers and then deleting it.
+
+Example usage:
+
+```shell
+kubectl force delete po my-stuck-pod
+```
+
+## 1.3 kubectl really get all
 
 Lists absolutely all resources in a namespace, not just the ones returned by `kubectl get all`.
 
@@ -33,4 +61,18 @@ kubectl really get all --selector foo=bar
 # List all resources in the whole cluster in YAML format
 kubectl really get all -o yaml
 ```
+
+## 1.4 kubectl really delete all
+
+Deletes absolutely all resources in a namespace, not just the ones that `kubectl delete all` deletes.
+
+Example usage:
+
+```shell
+kubectl really delete all
+kubectl really delete all -n some-namespace
+```
+
+
+
 
