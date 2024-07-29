@@ -1,4 +1,4 @@
-6723456
+
 # 1 Service介绍
 
 在kubernetes中，pod是应用程序的载体，我们可以通过pod的ip来访问应用程序，但是pod的ip地址不是固定的，这也就意味着不方便直接采用pod的ip对服务进行访问。
@@ -165,7 +165,7 @@ metadata: # 元数据
   name: service # 资源名称
   namespace: dev # 命名空间
 spec: # 描述
-  selector: # 标签选择器，用于确定当前service代理哪些pod
+  selector: # ！！！！！！！！！！！  标签选择器，用于确定当前service代理哪些pod
     app: nginx
   type: # Service类型，指定service的访问方式
   clusterIP:  # 虚拟服务的ip地址
@@ -259,7 +259,34 @@ pc-deployment-66cb59b984-wnncx   1/1     Running    10.244.1.40   node1    app=n
 10.244.1.40
 ```
 
-## 5.2 创建 Service, Service Type是ClusterIP
+
+## 5.2 define a selector that matches a set of pods
+
+# 6 Service类型
+
+
+Service的资源清单文件：
+
+```
+kind: Service  # 资源类型
+apiVersion: v1  # 资源版本
+metadata: # 元数据
+  name: service # 资源名称
+  namespace: dev # 命名空间
+spec: # 描述
+  selector: # ！！！！！！！！！！！  标签选择器，用于确定当前service代理哪些pod
+    app: nginx
+  type: # Service类型，指定service的访问方式
+  clusterIP:  # 虚拟服务的ip地址
+  sessionAffinity: # session亲和性，支持ClientIP、None两个选项
+  ports: # 端口信息
+    - protocol: TCP 
+      port: 3017  # service端口
+      targetPort: 5003 # pod端口
+      nodePort: 31122 # 主机端口 主机=node
+```
+
+## 6.1 创建 Service, Service Type是ClusterIP
 
 创建service-clusterip.yaml文件
 
@@ -330,16 +357,17 @@ TCP  10.97.97.97:80 rr
   ○ ③ 将 Kubernetes 中能分配 IP 地址的都看做是一个小型的、轻巧的、虚拟的 Linux 主机，10.96.12.53:6379 是因为我们没有在 service 中开启端口。
 
 
-### 5.2.1 查看 Service 的详细信息
+### 6.1.1 查看 Service 的详细信息
 
 
 kubectl describe svc xxx
 
 kubectl describe svc cluster-ip-svc
 
-### 5.2.2 Endpoint
+### 6.1.2 Endpoint
 
-> 为什么我们需要Service 关联endpoint 因为 我们需要 endpoint 这个 resource中定义的 ipadrrese 
+- 为什么我们需要Service 关联endpoint 因为 我们需要 endpoint 这个 resource中定义的 ipadrrese
+    - Service reosurce只定义了那些port 被暴露了出来， 却无法定义那些 ip addresse 中的 这个port 要被暴露出来 . 这时候就需要 endpoint 去 define a list of IP addresses and ports.
 
 Endpoint是kubernetes中的一个资源对象，存储在etcd中，用来记录一个service对应的所有pod的访问地址，它是根据service配置文件中selector描述产生的。
 一个Service由一组Pod组成，这些Pod通过Endpoints暴露出来，**Endpoints是实现实际服务的端点集合**。换句话说，service和pod之间的联系是通过endpoints实现的。
@@ -395,12 +423,16 @@ subsets:
     protocol: TCP
 ```
 
+- The `addresses` field lists the IP addresses of the pods that match the service selector.
+- The `ports` field lists the ports on which the pods are listening.
+
+
 kubectl apply -f k8s-ep.yaml
 
 鉴于有些人认为像 MySQL 之类的不应该使用 Docker 、k8s 部署，而是应该直接部署在物理机上，那么就可以使用此种方式，将 MySQL 的地址配置在 EndPoint 中，对外暴露一个 Service ，这样 Kubernetes 中的资源（如：Pod）就可以直接使用暴露的 Service 名称来访问，这样可以实时剔除 EndPoint 的信息。换言之，反向代理集群外的服务。
 
 
-### 5.2.3 域名解析
+### 6.1.3 域名解析
 
 进入其中 Pod ，使用 nslookup 命令查询 DNS ：
 
@@ -423,7 +455,7 @@ nslookup -type=a cluster-ip-svc
 ![14.png](https://cdn.nlark.com/yuque/0/2022/png/513185/1648106727034-1764cada-ca97-4845-a696-1d826cc1abc6.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_22%2Ctext_6K645aSn5LuZ%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10%2Fformat%2Cwebp)
 
 
-### 5.2.4 **负载分发策略**
+### 6.1.4 **负载分发策略**
 
 对Service的访问被分发到了后端的Pod上去，目前kubernetes提供了两种负载分发策略：
 - 如果不定义，默认使用kube-proxy的策略，比如随机、轮询
@@ -467,7 +499,7 @@ service "service-clusterip" deleted
 ```
 
 
-### 5.2.5 会话保持技术 sessionAffinity
+### 6.1.5 会话保持技术 sessionAffinity
 
 基于客户端 IP 地址的会话保持模式，即来自同一个客户端发起的所有请求都尽最大可能转发到固定的一个 Pod 上，只需要在 spec 中添加 sessionAffinity: ClientIP 选项。 
 
@@ -498,12 +530,12 @@ spec:
 kubectl apply -f k8s-sessionAffinity.yaml
 
 
-### 5.2.6 删除 Service
+### 6.1.6 删除 Service
 
 kubectl delete -f k8s-svc.yaml
 
 
-## 5.3 创建 HeadLiness 类型的 Service
+## 6.2 创建 HeadLiness 类型的 Service
 
 在某些场景中，开发人员可能不想使用Service提供的负载均衡功能，而希望自己来控制负载均衡策略，针对这种情况，kubernetes提供了HeadLiness Service，这类Service不会分配Cluster IP，如果想要访问service，只能通过service的域名进行查询。
 
@@ -575,7 +607,7 @@ service-headliness.dev.svc.cluster.local. 30 IN A 10.244.2.33
 
 
 
-## 5.4 创建 Service, Service Type是NodePort
+## 6.3 创建 Service, Service Type是NodePort
 
 在之前的样例中，创建的Service的ip地址只有集群内部才可以访问，如果希望将Service暴露给集群外部使用，那么就要使用到另外一种类型的Service，称为NodePort类型。NodePort的工作原理其实就是**将service的端口映射到Node的一个端口上**，然后就可以通过`NodeIp:NodePort`来访问service了。
 
@@ -600,7 +632,7 @@ spec:
 
 ![18.png](https://cdn.nlark.com/yuque/0/2022/png/513185/1648106766906-b8efebc2-2c79-4443-a590-a52fd4752e45.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_33%2Ctext_6K645aSn5LuZ%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10%2Fformat%2Cwebp)
 
-### 5.4.1 部署 Service 
+### 6.3.1 部署 Service 
 
 
 
@@ -637,7 +669,7 @@ service-nodeport   NodePort   10.105.64.191   <none>        80:30002/TCP  app=ng
 ```
 
 
-## 5.5 创建 Service, service Type 是LoadBalancer
+## 6.4 创建 Service, service Type 是LoadBalancer
 
 LoadBalancer和NodePort很相似，目的都是向外部暴露一个端口，区别在于LoadBalancer会在集群的外部再来做一个负载均衡设备，而这个设备需要外部环境支持的，外部服务发送到这个设备上的请求，会被设备负载之后转发到集群中。
 
@@ -670,7 +702,7 @@ spec:
 
 
 
-## 5.6 创建 Serivce, Service Type是External Name
+## 6.5 创建 Serivce, Service Type是External Name
 
 
 ExternalName类型的Service用于引入集群外部的服务，它通过`externalName`属性指定外部一个服务的地址，==然后在集群内部访问此service就可以访问到外部的服务了。==  但是需要注意目标服务的 `跨域` 问题。
@@ -718,7 +750,7 @@ www.a.shifen.com.       30      IN      A       39.156.66.14
 
 
 
-# 6 Pod 指定自己的主机名
+# 7 Pod 指定自己的主机名
 
 Pod 中还可以设置 hostname 和 subdomain 字段，需要注意的是，一旦设置了 hostname ，那么该 Pod 的主机名就被设置为 hostname 的值，而 subdomain  需要和 svc 中的 name 相同。
 
@@ -811,7 +843,7 @@ spec:
 
 - 那么 Pod 和 Service 的访问：`Pod 的 subdomain.名称空间.svc.cluster.local`。
 
-# 7 Ingress介绍
+# 8 Ingress介绍
 
 在前面课程中已经提到，Service对集群之外暴露服务的主要方式有两种：NotePort和LoadBalancer，但是这两种方式，都有一定的缺点：
 - NodePort方式的缺点是会占用很多集群机器的端口，那么当集群服务变多的时候，这个缺点就愈发明显
@@ -834,9 +866,9 @@ Ingress（以Nginx为例）的工作原理如下：
 ![img](https://gitee.com/yooome/golang/raw/main/22-k8s%E8%AF%A6%E7%BB%86%E6%95%99%E7%A8%8B-%E8%B0%83%E6%95%B4%E7%89%88/Kubenetes.assets/image-20200516112704764.png)
 
 
-# 8 Ingress使用
+# 9 Ingress使用
 
-## 8.1 环境准备 搭建ingress环境
+## 9.1 环境准备 搭建ingress环境
 
 ```
 # 创建文件夹
@@ -861,7 +893,7 @@ ingress-nginx   NodePort   10.98.75.163   <none>        80:32240/TCP,443:31335/T
 ```
 
 
-## 8.2 准备service和pod
+## 9.2 准备service和pod
 
 为了后面的实验比较方便，创建如下图所示的模型
 
@@ -954,7 +986,7 @@ tomcat-service   ClusterIP   None         <none>        8080/TCP   48s
 ```
 
 
-## 8.3 Http代理
+## 9.3 Http代理
 
 创建ingress-http.yaml
 
@@ -1007,7 +1039,7 @@ tomcat.itheima.com  / tomcat-service:8080(10.244.1.94:8080,10.244.1.95:8080,10.2
 ```
 
 
-## 8.4 Https代理
+## 9.4 Https代理
 
 创建证书
 
