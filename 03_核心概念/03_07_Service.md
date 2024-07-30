@@ -16,6 +16,7 @@ Service为一组 Pod 提供相同的 DNS 名，并且在它们之间进行负载
 Kubernetes 为 Pod 提供分配了IP 地址，但IP地址可能会发生变化。
 创建完service 后, 集群内的容器可以通过service名称访问服务，而不需要担心Pod的IP发生变化。
 
+
 Kubernetes Service 定义了这样一种抽象：
 service 的后端, 运行了一组可以替换的 Pod
 逻辑上的一组可以互相替换的 Pod，通常称为微服务。 
