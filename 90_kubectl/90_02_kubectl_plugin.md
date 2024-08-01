@@ -1,9 +1,56 @@
 
+如何自己创造一个 kubectl plugin 
 
-# 1 kubectl-plugins
+https://kubernetes.io/docs/tasks/extend-kubectl/kubectl-plugins/
+
+
+# 1 Krew (kubectl plugin management tool)
+
+https://github.com/kubernetes-sigs/krew?tab=readme-ov-file
+
+## 1.1 安装krew 以及配置环境变量 
+
+https://krew.sigs.k8s.io/docs/user-guide/setup/install/
+
+我在 windos  , bash on wsl, fish on wsl 中都配置好了 
+
+windwos 安装在了 `C:\Users\yzh\.krew\bin`
+
+
+## 1.2 那些kubectl plugin可以通过 krew安装 
+
+https://krew.sigs.k8s.io/plugins/
+
+
+- Run `kubectl krew install <PLUGIN_NAME>` to install a plugin via Krew.
+
+
+# 2 krew 中的可用的plugins
+
+
+## 2.1 kubectl-ssh-plugin-eks
+
+https://github.com/nithu0115/kubectl-ssh-plugin-eks
+
+
+
+This plugin will provide an easy way to SSH into Kubernetes Worker nodes running and have joined the Amazon EKS cluster using kubectl.
+
+
+
+
+
+# 3 kubectl-plugins von luksa
 https://github.com/luksa/kubectl-plugins
 
-## 1.1 kubectl ssh node
+
+## 3.1 安装
+
+我安装在了 /home/yzh/kubectl-plugins
+export PATH=$PATH:$HOME/kubectl-plugins
+
+
+## 3.2 kubectl ssh node
 
 Provider-agnostic way of opening a remote shell to a Kubernetes node.
 
@@ -28,7 +75,7 @@ You can also execute a command inside the node and quit like with command below:
 kubectl ssh node my-node ls   # access a node in a multi-node cluster and execute ls
 ```
 
-## 1.2 kubectl force delete
+## 3.3 kubectl force delete
 
 Force deletes an object by removing its finalizers and then deleting it.
 
@@ -38,7 +85,7 @@ Example usage:
 kubectl force delete po my-stuck-pod
 ```
 
-## 1.3 kubectl really get all
+## 3.4 kubectl really get all
 
 Lists absolutely all resources in a namespace, not just the ones returned by `kubectl get all`.
 
@@ -62,7 +109,7 @@ kubectl really get all --selector foo=bar
 kubectl really get all -o yaml
 ```
 
-## 1.4 kubectl really delete all
+## 3.5 kubectl really delete all
 
 Deletes absolutely all resources in a namespace, not just the ones that `kubectl delete all` deletes.
 
@@ -75,4 +122,19 @@ kubectl really delete all -n some-namespace
 
 
 
+# 4 kubectl-plugins  von jordanwilson230
 
+https://github.com/jordanwilson230/kubectl-plugins
+
+我在 wsl 中安装了 
+/home/yzh/kubectl-plugins
+
+但是 /home/yzh/kubectl-plugins 没有加入环境变量 ， 也没有去使用 
+
+
+里面有 
+kubectl ssh 
+kubectl switch
+kubectl prompt
+kubectl image
+kubectl ipcd 
