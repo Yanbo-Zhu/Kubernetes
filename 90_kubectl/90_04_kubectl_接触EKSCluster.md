@@ -44,10 +44,160 @@ kubectl cluster-info dump
 ```
 
 
-# 3 连接远程的cluster
+# 3 查看 kubectl config file 
 
 
-## 3.1 直接登录Cluster所在的host_然后使用kubectl to connect a cluster 
+Kubectl config get-contexts
+```
+CURRENT   NAME                                                 CLUSTER                                                    AUTHINFO                                                   NAMESPACE
+          arn:aws:eks:eu-central-1:618143434103:cluster/main   arn:aws:eks:eu-central-1:618143434103:cluster/main         arn:aws:eks:eu-central-1:618143434103:cluster/main
+*         arn:aws:eks:eu-central-1:681290371536:cluster/dev    arn:aws:eks:eu-central-1:681290371536:cluster/dev          arn:aws:eks:eu-central-1:681290371536:cluster/dev
+          docker-desktop                                       docker-desktop                                             docker-desktop
+          e20-d3042                                            local-e20-d3042                                            user-e20-d3042
+          e20-d3042b                                           cluster-local-e20-d3042b                                   user-e20-d3042b
+          e20-eks-cluster-main                                 arn:aws:eks:eu-central-1:618143434103:cluster/main         arn:aws:eks:eu-central-1:618143434103:cluster/main
+          e2x-eks-cluster-dev                                  arn:aws:eks:eu-central-1:681290371536:cluster/dev          arn:aws:eks:eu-central-1:681290371536:cluster/dev
+          e2x-eks-cluster-eks-dev-ex                           arn:aws:eks:eu-central-1:681290371536:cluster/eks-dev-ex   arn:aws:eks:eu-central-1:681290371536:cluster/eks-dev-ex
+```
+
+
+kubectl config view, --cluster string, --context string
+
+kubectl config view
+```
+B2DE1F9328FC52F6DC1323E665CD8.gr7.eu-central-1.eks.amazonaws.com
+  name: arn:aws:eks:eu-central-1:618143434103:cluster/main
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://08A0408DF33822C2DE2D141CFECDB47F.gr7.eu-central-1.eks.amazonaws.com
+  name: arn:aws:eks:eu-central-1:681290371536:cluster/dev
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://EFAA54F84DDE50C5290994816323A66C.gr7.eu-central-1.eks.amazonaws.com
+  name: arn:aws:eks:eu-central-1:681290371536:cluster/eks-dev-ex
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://172.18.80.141:6443
+  name: cluster-local-e20-d3042b
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://kubernetes.docker.internal:6443
+  name: docker-desktop
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://172.18.80.55:6443
+  name: local-e20-d3042
+contexts:
+- context:
+    cluster: arn:aws:eks:eu-central-1:618143434103:cluster/main
+    user: arn:aws:eks:eu-central-1:618143434103:cluster/main
+  name: arn:aws:eks:eu-central-1:618143434103:cluster/main
+- context:
+    cluster: arn:aws:eks:eu-central-1:681290371536:cluster/dev
+    user: arn:aws:eks:eu-central-1:681290371536:cluster/dev
+  name: arn:aws:eks:eu-central-1:681290371536:cluster/dev
+- context:
+    cluster: docker-desktop
+    user: docker-desktop
+  name: docker-desktop
+- context:
+    cluster: local-e20-d3042
+    user: user-e20-d3042
+  name: e20-d3042
+- context:
+    cluster: cluster-local-e20-d3042b
+    user: user-e20-d3042b
+  name: e20-d3042b
+- context:
+    cluster: arn:aws:eks:eu-central-1:618143434103:cluster/main
+    user: arn:aws:eks:eu-central-1:618143434103:cluster/main
+  name: e20-eks-cluster-main
+- context:
+    cluster: arn:aws:eks:eu-central-1:681290371536:cluster/dev
+    user: arn:aws:eks:eu-central-1:681290371536:cluster/dev
+  name: e2x-eks-cluster-dev
+- context:
+    cluster: arn:aws:eks:eu-central-1:681290371536:cluster/eks-dev-ex
+    user: arn:aws:eks:eu-central-1:681290371536:cluster/eks-dev-ex
+  name: e2x-eks-cluster-eks-dev-ex
+current-context: arn:aws:eks:eu-central-1:681290371536:cluster/dev
+kind: Config
+preferences: {}
+users:
+- name: arn:aws:eks:eu-central-1:618143434103:cluster/main
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      args:
+      - --region
+      - eu-central-1
+      - eks
+      - get-token
+      - --cluster-name
+      - main
+      - --output
+      - json
+      command: aws
+      env:
+      - name: AWS_PROFILE
+        value: ivu-cloud-e20
+      interactiveMode: IfAvailable
+      provideClusterInfo: false
+- name: arn:aws:eks:eu-central-1:681290371536:cluster/dev
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      args:
+      - --region
+      - eu-central-1
+      - eks
+      - get-token
+      - --cluster-name
+      - dev
+      - --output
+      - json
+      command: aws
+      env:
+      - name: AWS_PROFILE
+        value: ivu-cloud-e2x
+      interactiveMode: IfAvailable
+      provideClusterInfo: false
+- name: arn:aws:eks:eu-central-1:681290371536:cluster/eks-dev-ex
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      args:
+      - --region
+      - eu-central-1
+      - eks
+      - get-token
+      - --cluster-name
+      - eks-dev-ex
+      - --output
+      - json
+      command: aws
+      env:
+      - name: AWS_PROFILE
+        value: ivu-cloud-e2x
+      interactiveMode: IfAvailable
+      provideClusterInfo: false
+- name: docker-desktop
+  user:
+    client-certificate-data: DATA+OMITTED
+    client-key-data: DATA+OMITTED
+- name: user-e20-d3042
+  user:
+    client-certificate-data: DATA+OMITTED
+    client-key-data: DATA+OMITTED
+- name: user-e20-d3042b
+  user:
+    client-certificate-data: DATA+OMITTED
+    client-key-data: DATA+OMITTED
+```
+# 4 连接远程的cluster
+
+
+## 4.1 直接登录Cluster所在的host_然后使用kubectl to connect a cluster 
 
 https://confluence.ivu.de/display/SYS/k8s+Single+Node+Clusters+by+Puppet+for+QS24#k8sSingleNodeClustersbyPuppetforQS24-Gettingstartedwiththek8sSingleNodeCluster
 
@@ -56,11 +206,11 @@ https://confluence.ivu.de/display/SYS/k8s+Single+Node+Clusters+by+Puppet+for+QS2
 3. Use command 'kubectl'
 4. Alternatively, use 'k0s kc' to make use of the command completion.
 
-## 3.2 本地安装kubectl_连接远程的cluster
+## 4.2 本地安装kubectl_连接远程的cluster
 
 先 使用aws-adfs login 登录一个aws account 
 
-### 3.2.1 setting up a kubeconfig
+### 4.2.1 setting up a kubeconfig
 
 To control the cluster with kubectl remotely from another host, perform the following steps.
 
@@ -104,12 +254,15 @@ users:
 You are now connected as cluster admin to Kubernetes. Note that in this role, you may not only monitor, but also reconfigure and inherently misconfigure / destroy resources in the Kubernetes cluster. On the other hand, this is a Dedicated Single Node Cluster, hence the only system that may be harmed is this dedicated cluster and the IVU.plan environment within.
 
 
+### 4.2.2 查到你想访问的 cluster 的  content name 
+
+执行  kubectl config view, 查到你想访问的 cluster 的  content name 
 
 
-### 3.2.2 验收
+### 4.2.3 验收
 1 
 在非 `c:\Users\yzh\.kube` 路径下 ,  随便哪个路径下
-执行  kubectl config view, 查到你想访问的 cluster 的  name 
+
 执行  kubectl config use-context e20-d2034, 得到 output 为 Switched to context "e20-d2034"
 
 然后执行 
@@ -146,7 +299,7 @@ Unable to connect to the server: dial tcp 127.0.0.1:6443: connectex: Es konnte k
 
 
 
-# 4 已经连接到cluster_让探后查用那个身份在操作的 
+# 5 已经连接到cluster_让探后查用那个身份在操作的 
 
 
 It is not always obvious what attributes (username, groups) you will get after authenticating to the cluster. It can be even more challenging if you are managing more than one cluster at the same time.
@@ -155,9 +308,9 @@ There is a `kubectl` subcommand to check subject attributes, such as username, f
 `kubectl auth whoami`.
 
 
-# 5 EKS Cluster 相关 
+# 6 EKS Cluster 相关 
 
-## 5.1 查看这 aws account 有几个 eks cluster 
+## 6.1 查看这 aws account 有几个 eks cluster 
 
 先使用aws-adfs login 登录一个aws account 
 
@@ -184,7 +337,7 @@ There is a `kubectl` subcommand to check subject attributes, such as username, f
 
 ```
 
-## 5.2 Create or update a kubeconfig file for your cluster
+## 6.2 Create or update a kubeconfig file for your cluster
 
 https://docs.aws.amazon.com/eks/latest/userguide/create-kubeconfig.html
 
@@ -224,10 +377,12 @@ kube-system   kube-proxy-8w4g7                     1/1     Running   0          
 ```
 
 
-## 5.3 Continuous usage
+## 6.3 Continuous usage
 
 Assumed roles usually expire after a certain time (e.g. 1h). The following bash function may be of help to simplify the process of renewing the session and updating kubeconfig. Add these lines to your shell's rc file.
 
+
+bash shell 
 ```
 # call example: refresh-eks-access ivu-cloud-e2x titanic-e2x
 function refresh-eks-access() {
@@ -236,6 +391,16 @@ function refresh-eks-access() {
 }
 ```
 
+
+
+fish shell
+```
+function refresh-eks-access
+  aws-adfs login --profile $argv[1]
+  aws --profile $argv[1] eks update-kubeconfig --name $argv[2]
+end
+
+```
 
 in powershell 
 ```

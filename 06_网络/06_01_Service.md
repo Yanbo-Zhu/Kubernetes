@@ -372,6 +372,13 @@ kubectl describe svc cluster-ip-svc
 Endpoint是kubernetes中的一个资源对象，存储在etcd中，用来记录一个service对应的所有pod的访问地址，它是根据service配置文件中selector描述产生的。
 一个Service由一组Pod组成，这些Pod通过Endpoints暴露出来，**Endpoints是实现实际服务的端点集合**。换句话说，service和pod之间的联系是通过endpoints实现的。
 
+
+Service 和 endpoints 两者之间怎么匹配上 ： through name 
+https://stackoverflow.com/questions/59412883/how-to-explicitely-define-an-endpoint-of-an-kubernetes-service
+`(*) Notice that there should be a match between the service name and the name of the Endpoints object.`
+
+
+
 ![image-20200509191917069](https://gitee.com/yooome/golang/raw/main/22-k8s%E8%AF%A6%E7%BB%86%E6%95%99%E7%A8%8B-%E8%B0%83%E6%95%B4%E7%89%88/Kubenetes.assets/image-20200509191917069.png)
 
 
