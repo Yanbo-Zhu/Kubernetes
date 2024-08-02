@@ -7,6 +7,23 @@ Kustomize 允许用户以一个应用描述文件 （YAML 文件）为基础（B
 
 Kustomize 的目标是一样的，但不使用模板。相反，它在一个目录中保留**完整**版本的 YAML 文件。按照惯例，这个文件被称为 `base`，但也可以根据自己的喜好给它命名。然后可以为每个环境/场景/用例创建一个目录(或目录树)，每个目录都需要一个名为 `kustomization.yaml` 的 YAML 文件，该文件的目的是告知 Kustomize 应该考虑哪些 manifest 文件，以及需要对这些文件进行哪些修改。
 
+
+Features and Benefits
+- declarative configuration management:
+- **overlay and base customization**
+- **reusability and modularity**: users can split their configurations into smaller, reusable components, define common resources such as ConfigMaps or Secrets in separate files, and reference them in multiple places
+- **patch and strategic merge patch**
+
+
+Kustomize introduces a straightforward workflow with key components:
+- **Kustomization files**: specify the resources to include and the customizations to apply
+- **base directory**: contains the original configuration
+- **overlay directory**: contains modifications for specific use cases
+- **patches**: apply changes to resources
+- **generators**: create new resources based on predefined templates
+
+The workflow promotes code reuse, modularity, and the ability to more easily manage multiple environments or variations of an application.
+
 # 1 Kustomize 的特色
 
 - 功能简单清晰，kubectl 直接支持。

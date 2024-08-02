@@ -2,6 +2,8 @@
 
 https://github.com/kubernetes-sigs/kustomize/blob/master/examples/chart.md
 
+https://www.baeldung.com/ops/kubernetes-helm-vs-kustomize
+
 # 1 总览 
 
 就是使用kustomize 去补足 由执行helm chart 生成的 Manifest Yaml File
@@ -23,11 +25,52 @@ The example below arbitrarily uses the [_minecraft_](https://artifacthub.io/pack
 4. **覆盖 Helm 图表**: Kustomize 可以覆盖现有的 Helm 图表，并使用 `HelmChartInflationGenerator` 覆盖一组自定义值。例如，可以使用 Kustomize 部署 Bitnami 的 NGINX Helm 图表，并覆盖默认值以提供自定义的 `nginx.conf` 和自定义的首页。
 
 
-# 2 
+# 2 这个解释好
+https://www.baeldung.com/ops/kubernetes-helm-vs-kustomize
+
+## 2.1 Using Kustomize to Customize Helm Charts[](https://www.baeldung.com/ops/kubernetes-helm-vs-kustomize#1-using-kustomize-to-customize-helm-charts)
+
+**We can use Kustomize to modify and customize Helm chats by applying patches or overlays to the rendered manifests**. This way, we use Helm for packaging and templating while leveraging Kustomize for environment-specific customizations.
+
+Let’s see an example of _kustomization.yaml_ file that references a Helm chart:
+
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- helm-chart.yaml
+patchesStrategicMerge:
+- patch.yaml
+```
+
+In this example, _helm-chart.yaml_ is a rendered Helm chart, and _patch.yaml_ contains the Kustomize patches to modify the chart.
+
+## 2.2 Helm as a Package Manager With Kustomize[](https://www.baeldung.com/ops/kubernetes-helm-vs-kustomize#2-helm-as-a-package-manager-with-kustomize)
+
+**We can also use Helm as a package manager to manage and deploy Helm charts while using Kustomize for further customization**. Thus, we benefit from Helm’s packaging and release management features while still having the flexibility to customize the deployed resources using Kustomize.
+
+Let’s look at an example of a _kustomization.yaml_ file that includes a Helm chart as a resource:
+
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+helmCharts:
+- name: myapp
+  repo: https://charts.example.com
+  version: 1.2.3
+  valuesFile: myapp-values.yaml
+patchesStrategicMerge:
+- patch.yaml
+```
+
+In this example, the Helm chart _myapp_ is included as a resource in the _kustomization.yaml_ file specifying the chart repository, version, and values file. Additionally, _patch.yaml_ contains the Kustomize patches to customize the deployed resources.
+
+
+# 3 
 
 https://github.com/kubernetes-sigs/kustomize/blob/master/examples/chart.md#build-the-base-and-the-variants
 
-## 2.1 Preparation
+## 3.1 Preparation
 
 This example defines the `helm` command as
 
@@ -44,7 +87,7 @@ DEMO_HOME=$(mktemp -d)
 mkdir -p $DEMO_HOME/base $DEMO_HOME/dev $DEMO_HOME/prod
 ```
 
-## 2.2 Define some variants
+## 3.2 Define some variants
 
 1 _development_ variant.
 
@@ -124,7 +167,7 @@ Expect something like:
 
 
 
-### 2.2.1 Helm related flags
+### 3.2.1 Helm related flags
 
 
 Attempt to build the `base`:
@@ -159,7 +202,7 @@ function kustomizeIt {
 }
 ```
 
-### 2.2.2 Build the base and the variants
+### 3.2.2 Build the base and the variants
 
 1 
 Now build the `base`:
@@ -203,7 +246,7 @@ diff <(kustomizeIt dev) <(kustomizeIt prod) | more
 This shows so-called _last mile hydration_ of two variants made from a common base that happens to be generated from a helm chart.
 
 
-## 2.3 How does the pull work?
+## 3.3 How does the pull work?
 
 [](https://github.com/kubernetes-sigs/kustomize/blob/master/examples/chart.md#how-does-the-pull-work)
 
@@ -234,7 +277,7 @@ If a chart exists, kustomize will not overwrite it (so to suppress a pull, simpl
 > kustomize is a YAML manipulator. It's not a manager of a cache of things downloaded from the internet.
 
 
-## 2.4 The pull happens once.
+## 3.4 The pull happens once.
 
 如果你修改了 helm chart 中的 values.yaml 中的值,   再次执行 kustomizeIt prod 后, helm chart 对应的信息 mainifest yaml file 会被成功生成出来, 即使之前 老一个版本的 mainifest yaml file  已经被生成出来了. 
 
@@ -272,7 +315,7 @@ Finally, clean up:
 rm -r $DEMO_HOME
 ```
 
-## 2.5 Performance
+## 3.5 Performance
 
 kustomization.yaml 会中给出 一些helm-related fields 比如 
 ```
@@ -337,7 +380,7 @@ The user should choose when or if to refresh their local copy of the chart's inf
 
 
 
-### 2.5.1 But it's not really about performance.
+### 3.5.1 But it's not really about performance.
 
  > render Helm charts with Kustomize. 带来的风险是有的
 
@@ -350,7 +393,7 @@ It's irresponsible to depend on a remote configuration that's _not under your co
 Further, they are useless are reminders, since **annoying things are immediately scripted away and forgotten**, as was done above in the `kustomizeIt` shell function.
 
 
-## 2.6 Best practice
+## 3.6 Best practice
 
 [](https://github.com/kubernetes-sigs/kustomize/blob/master/examples/chart.md#best-practice)
 
@@ -365,9 +408,9 @@ Maintain a _local, inflated fork_ of a remote configuration, and have a human re
 
 
 
-# 3 其他
+# 4 其他
 
-## 3.1 ChartInflator插件
+## 4.1 ChartInflator插件
 
 >用写好kustomization 文件, 渲染某个已经存在的Helm Charts, 使得这个charts中添加一些内容
 
@@ -453,7 +496,7 @@ $ kustomize build --enable_alpha_plugins .
 正常渲染完成后我们可以看到所有的资源上都被添加了一个 `env: dev` 的标签，这是实时完成的，不需要维护任何额外的文件的。
 
 
-## 3.2 用单个清单文件定制
+## 4.2 用单个清单文件定制
 
 另一种使用 Kustomize 定制 Chart 的方法是使用 `helm template` 命令来生成一个单一的资源清单，这种方式可以对 Chart 进行更多的控制，但它需要更多的工作来出来处理更新该生成文件的版本控制。
 
@@ -532,7 +575,7 @@ $ kustomize build .
 
 这种方法，需要以某种方式运行 make 命令来生成更新的一体化资源清单文件，另外，要将更新过程与你的 GitOps 工作流整合起来可能有点麻烦。
 
-## 3.3 使用 Post Rendering 定制
+## 4.3 使用 Post Rendering 定制
 
 **Post Rendering** 是 Helm 3 带来的一个新功能，在前面的2种方法中，Kustomize 是用来处理生成图表清单的主要工具，但在这里，Kustomize 是作为 Helm 的辅助工具而存在的。
 
@@ -565,7 +608,7 @@ $ helm template vault hashicorp/vault --post-renderer ./kustomize-wrapper.sh
 这种方法就是需要管理一个额外的脚本，其余的和第一种方式基本上差不多，只是不使用 Kustomize 的插件，而是直接使用 Helm 本身的功能来渲染上游的 Chart 包。
 
 
-## 3.4 enable Kustomizing Helm charts
+## 4.4 enable Kustomizing Helm charts
 
 It's possible to render Helm charts with Kustomize. Doing so requires that you pass the --enable-helm flag to the kustomize build command. This flag is not part of the Kustomize options within Argo CD. 
 
