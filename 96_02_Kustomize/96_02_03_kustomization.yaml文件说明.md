@@ -683,6 +683,7 @@ patchesStrategicMerge则主要是用于**overlay下的kustomization.yaml中**, �
 比如, 现在需要1box环境中，在base声明的deployment.yaml的基础上，给`p-expoter`容器增加一个环境变量
 那么就新增overlay/1box/1box-custom-env.yaml
 
+overlay/1box/1box-custom-env.yaml
 ```
 apiVersion: apps/v1  
 kind: Deployment  
