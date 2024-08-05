@@ -255,10 +255,155 @@ data:
 使用 helm install --dry-run 测试：
 helm install test mychart --dry-run
 
-# 5 管道和函数 
+# 5 注释 
+
+```
+  {{/* name: {{ include "ivuplan.fullname" . }}-{{ .Values.lzm.awsAccount }}  # Notice that there should be a match between the service name and the name of the Endpoints object.
+ */}} 
+
+在 helm template 用 # sdsasda   会报错
+```
+
+# 6 给某个 keyword 赋值
+
+```
+name: {{ .Values.monitoring.appServerMetrics.existingSecretName | default (printf "%s-metrics-auth" (include "ivuplan.fullname" .)) | quote }}
+
+metadata:
+  name: {{ include "ivuplan.fullname" . }}
+  labels:
+    {{- include "ivuplan.labels" . | nindent 4 }}
+
+data:
+  username: {{ required ".Values.monitoring.appServerMetrics.username is required, when no existing secret is passed." .Values.monitoring.appServerMetrics.username | b64enc }}
 
 
-## 5.1 函数 
+
+{{- define "license-loader" -}}
+- name: ivuplan-license-loader
+  image: curlimages/curl:8.8.0
+  imagePullPolicy: {{ $.Values.image.pullPolicy }}
+  command:
+    - "curl"
+    - "-o"
+    - "/license-dir/license.license"
+    - {{ $.Values.ivuplanDb.licenseFileUrl | quote }}
+  volumeMounts:
+    - name: licensedir
+      mountPath: "/license-dir"
+{{- end }}
+
+{{- define "ivuplan.fullname" -}}
+{{- if .Values.fullnameOverride }}
+{{- .Values.fullnameOverride | trunc 53 | trimSuffix "-" }}
+{{- else }}
+{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- if contains $name .Release.Name }}
+{{- .Release.Name | trunc 53 | trimSuffix "-" }}
+{{- else }}
+{{- printf "%s-%s" .Release.Name $name | trunc 53 | trimSuffix "-" }}
+{{- end }}
+```
+
+
+```
+
+{{- printf "%s-%s" .Release.Name $name | trunc 53 | trimSuffix "-" }}
+
+{{- range $as := .Values.ivuplanAs }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ printf "%s-%s-%s" (include "ivuplan.fullname" $) $.Values.lzm.awsAccount $as.name | quote }}
+  namespace: {{ $.Values.lzm.namespace | default (printf "default" ) | quote }}
+{{- end }}
+
+```
+# 7 变量 
+
+函数、管道符、对象和控制结构都可以控制，我们转向很多编程语言中更基本的思想之一：变量。 
+在模板中，很少被使用。但是我们可以使用变量简化代码，并更好地使用with和range。 
+
+示例1 ：获取列表键值
+
+vi values.yaml
+```
+favorite:
+  drink: coffee
+  food: pizza
+```
+
+
+vi configmap.yaml
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+data:
+  myvalue: "Hello World"
+  {{- range $key, $val := .Values.favorite }} # 注意这里
+  {{ $key }}: {{ $val | quote }}
+  {{- end }}
+```
+
+
+helm install test mychart --dry-run
+![](image/Pasted%20image%2020240614165525.png)
+
+
+---
+
+示例2 解决 with 中不能使用内置对象（使用变量对另一个对象进行命名引用）
+
+vi configmap.yaml
+
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+data:
+  myvalue: "Hello World"
+  {{- $relname := .Release.Name -}} # 提前将对象赋值给变量
+  {{- with .Values.favorite }}
+  drink: {{ .drink | default "tea" | quote }}
+  food: {{ .food | upper | quote }}
+  release: {{ $relname }} # 使用 $变量 的方式
+  {{- end }}
+```
+
+helm install test mychart --dry-run
+
+![](image/Pasted%20image%2020240614165753.png)
+
+---
+
+
+## 7.1 使用 $ 去引用变量 
+
+
+在有range 的情况下，  底下的块 中的变量的寻找范围 都变成了 在 .Values.ivuplanAs 下去寻找变量了， 所以 必须改为 $.Values.lzm.awsAccount， 用 .Values.lzm.awsAccount 会报错 
+
+在没有range 的情况下， 用  .Values.lzm.awsAccount  没问题 
+
+正确的写法 
+```
+{{- range $as := .Values.ivuplanAs }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ printf "%s-%s-%s" (include "ivuplan.fullname" $) $.Values.lzm.awsAccount $as.name | quote }}
+  namespace: {{ $.Values.lzm.namespace | default (printf "default" ) | quote }}
+```
+
+
+
+
+# 8 管道和函数 
+
+
+## 8.1 函数 
 - 目前为止，我们已经知道了如何将信息传到模板中，但是传入的信息并不能被修改。 而有时我们又希望以一种更有用的方式来转换所提供的数据。
 - 我们可以调用模板指令中的 quote 函数将 .values 对象中的字符串属性用引号引起来，然后放到模板中。
 
@@ -284,7 +429,7 @@ helm install test mychart --dry-run
 ● Helm 有超过60个可用函数。其中有些通过 Go模板语言本身定义。其他大部分都是 Sprig 模板库。我们可以在示例看到其中很多函数。
 
 
-## 5.2 管道 
+## 8.2 管道 
 
 - 模板语言其中一个强大功能是 **管道** 概念。借鉴UNIX中的概念，管道符是将一系列的模板语言紧凑地将多个流式处理结果合并的工具。换句话说，管道符是按顺序完成一系列任务的方式。
 
@@ -319,7 +464,7 @@ data:
 倒置命令是模板中的常见做法。可以经常看到 .val | quote 而不是 quote .val。实际上两种操作都是可以的。
 
 
-## 5.3 default 函数
+## 8.3 default 函数
 
 - 模板中频繁使用的一个函数是`default`： `default DEFAULT_VALUE GIVEN_VALUE`。 这个函数允许你在模板中指定一个默认值，以防这个值被忽略。
 - 使用 default 函数重写上面的示例：
@@ -369,9 +514,9 @@ helm install test mychart --dry-run
 - [模板函数列表](https://helm.sh/zh/docs/chart_template_guide/function_list/)。
 - 对于模板来说，运算符(`eq`, `ne`, `lt`, `gt`, `and`, `or`等等) 都是作为函数来实现的。 在管道符中，操作可以按照圆括号分组。
 
-# 6 流程控制 
+# 9 流程控制 
 
-## 6.1 概述
+## 9.1 概述
 
 - 很多编程语言都提供了流程控制语言，如：if 、while 等，Helm 也不例外。
 - Helm 提供了如下的三种流程控制：
@@ -384,7 +529,7 @@ helm install test mychart --dry-run
     - `block` 声明一种特殊的可填充的模板块。
 
 
-## 6.2 if-else
+## 9.2 if-else
 
 
 语法：
@@ -410,7 +555,7 @@ helm install test mychart --dry-run
 - 空集合(`map`, `slice`, `tuple`, `dict`, `array`)
 
 
-### 6.2.1 例子 1
+### 9.2.1 例子 1
 vi configmap.yaml
 
 ```
@@ -451,7 +596,7 @@ favorite:
 helm install test mychart --dry-run
 
 
-### 6.2.2 例子2 : 缩进引起的问题 
+### 9.2.2 例子2 : 缩进引起的问题 
 
 
 我们不可能 { if }} xxx {{ end }} 总写在一行，那么我们对其格式化一下：
@@ -598,7 +743,7 @@ helm install test mychart --dry-run
 
 
 
-## 6.3 with
+## 9.3 with
 
 with操作。这个用来控制变量范围。回想一下，.是对 当前作用域 的引用。因此 .Values就是告诉模板在当前作用域查找Values对象。
 
@@ -663,13 +808,49 @@ with 已经将 . 指向了 .Values.favorite，toYaml .就相当于 toYaml .Value
 
 ![](image/Pasted%20image%2020240614164054.png)
 
-## 6.4 range
+## 9.4 range
 
 很多编程语言支持使用for循环，foreach循环，或者类似的方法机制。 在Helm的模板语言中，在一个集合中迭代的方式是使用range操作符。
 
 ```
 {{- range .Values.test }}
     {{ . }}
+{{- end }}
+
+{{- define "language-files" -}}
+{{- range $.Values.languages }}
+- name: copy-language-files-{{ . }}
+  #image: e20hub.ivu-ag.com/ptp/language-pack:24.0.0-20240411-2001-en-gb
+  image: "{{ $.Values.image.registry }}/{{ $.Values.image.repository }}/language-pack:{{ $.Values.image.tag }}-{{ . }}"
+  imagePullPolicy: {{ $.Values.image.pullPolicy }}
+  volumeMounts:
+    - name: languagedir
+      mountPath: "/mnt/"
+{{- end }}
+{{- end }}
+
+
+{{- range $as := .Values.ivuplanAs }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ printf "%s-%s-%s" (include "ivuplan.fullname" $) $.Values.lzm.awsAccount $as.name | quote }}
+  namespace: {{ $.Values.lzm.namespace | default (printf "default" ) | quote }}
+{{- end }}
+
+
+
+  {{- range $ts := .Values.ivuplanTs }}
+    - port: metrics
+      scheme: http
+      path: '/metrics'
+      interval: 30s
+      relabelings:
+        - sourceLabels: [__address__]
+          targetLabel: __address__
+          regex: (.*)
+          replacement: "{{ $ts.host }}:9182"
+          action: replace
 {{- end }}
 ```
 
@@ -714,78 +895,64 @@ data:
 ![](image/Pasted%20image%2020240614165024.png)
 
 
-
-
-# 7 变量 
-
-函数、管道符、对象和控制结构都可以控制，我们转向很多编程语言中更基本的思想之一：变量。 
-在模板中，很少被使用。但是我们可以使用变量简化代码，并更好地使用with和range。 
-
-示例1 ：获取列表键值
-
-vi values.yaml
-```
-favorite:
-  drink: coffee
-  food: pizza
-```
-
-
-vi configmap.yaml
-```
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ .Release.Name }}-configmap
-data:
-  myvalue: "Hello World"
-  {{- range $key, $val := .Values.favorite }} # 注意这里
-  {{ $key }}: {{ $val | quote }}
-  {{- end }}
-```
-
-
-helm install test mychart --dry-run
-![](image/Pasted%20image%2020240614165525.png)
-
-
 ---
 
-示例2 解决 with 中不能使用内置对象（使用变量对另一个对象进行命名引用）
+```
+# -- IVU.plan terminalservers
+# For example:
+# ivuplanTs:
+#   - name: "t01"
+#     host: "t01-example.local"
+#   - name: "t02"
+#     host: "t02-example.local"
+ivuplanTs: []
+```
 
-vi configmap.yaml
+
 
 ```
-apiVersion: v1
-kind: ConfigMap
+{{- if .Values.monitoring.serviceMonitors.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
 metadata:
-  name: {{ .Release.Name }}-configmap
-data:
-  myvalue: "Hello World"
-  {{- $relname := .Release.Name -}} # 提前将对象赋值给变量
-  {{- with .Values.favorite }}
-  drink: {{ .drink | default "tea" | quote }}
-  food: {{ .food | upper | quote }}
-  release: {{ $relname }} # 使用 $变量 的方式
-  {{- end }}
+  name: {{ include "ivuplan.fullname" . }}-ts
+  labels:
+    {{- include "ivuplan.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "ivuplan.selectorLabels" . | nindent 6 }}
+      endpoints: terminalserver
+  endpoints:
+  {{- range $ts := .Values.ivuplanTs }}
+    - port: metrics
+      scheme: http
+      path: '/metrics'
+      interval: 30s
+      relabelings:
+        - sourceLabels: [__address__]
+          targetLabel: __address__
+          regex: (.*)
+          replacement: "{{ $ts.host }}:9182"
+          action: replace
+{{- end }}
+  targetLabels:
+    - "component"
+{{- end }}
 ```
 
-helm install test mychart --dry-run
-
-![](image/Pasted%20image%2020240614165753.png)
 
 
+# 10 命名模版 
 
-# 8 命名模版 
-
-## 8.1 概述 
+## 10.1 概述 
 
 
 
 ● 我们知道，k8s 是通过标签 Label 来匹配和筛选资源的，如：Service 和 Deployment 都是通过 label 来匹配 Pod 的，那么这部分也是重复的。在 Helm 中，这类在模板中重复的地方，也可以被抽取取来，放在命名模板中（命名模板是全局的，换言之，所有的模板都可以使用）。
 ● 一个常见的命名惯例是用chart名称作为模板前缀：{{ define "mychart.labels" }}。使用特定chart名称作为前缀可以避免可能因为 两个不同chart使用了相同名称的模板而引起的冲突。
 
-### 8.1.1 局部的和`_`文件
+### 10.1.1 局部的和`_`文件
 
 - 目前为止，我们已经使用了单个文件，且单个文件中包含了单个模板。但Helm的模板语言允许你创建命名的嵌入式模板， 这样就可以在其他位置按名称访问。
 - 在编写模板细节之前，文件的命名惯例需要注意：
@@ -794,7 +961,7 @@ helm install test mychart --dry-run
     - 命名以下划线(`_`)开始的文件则假定 _没有_ 包含清单内容。这些文件不会渲染为Kubernetes对象定义，但在其他chart模板中都可用。
 - 这些文件用来存储局部和辅助对象，实际上当我们第一次创建`mychart`时，会看到一个名为`_helpers.tpl`的文件，这个文件是模板局部的默认位置。
 
-### 8.1.2 用`define`和`template`声明和使用模板
+### 10.1.2 用`define`和`template`声明和使用模板
 
 `define`操作允许我们在模板文件中创建一个命名模板，语法如下
 
@@ -820,7 +987,7 @@ data:
   {{- end }}
 ```
 
-## 8.2 例子 
+## 10.2 例子 
 
 `vi _helpers.tpl`
 
@@ -854,7 +1021,7 @@ helm install test mychart --dry-run
 ![](image/Pasted%20image%2020240614171228.png)
 
 
-## 8.3 include 关键词, 为了使用管道 
+## 10.3 include 关键词, 为了使用管道 
 
 template 指令是将一个模板包含在另一个模板中的方法。但是，template 函数不能用于 Go 模板管道。为了解决该问题，增加include 功能。
 
@@ -891,7 +1058,7 @@ data:
 
 helm install test mychart --dry-run
 
-# 9 Note.txt 文件 
+# 11 Note.txt 文件 
 
 - 在`helm install` 或 `helm upgrade`命令的最后，Helm 会打印出对用户有用的信息。 使用模板可以高度自定义这部分信息。
 - 要在chart添加安装说明，只需创建`templates/NOTES.txt`文件即可。该文件是纯文本，但会像模板一样处理， 所有正常的模板函数和对象都是可用的。\
@@ -908,9 +1075,9 @@ To learn more about the release, try:
   $ helm get all {{ .Release.Name }}
 ```
 
-# 10 在模板内部访问文件
+# 12 在模板内部访问文件
 
-## 10.1 概述
+## 12.1 概述
 
 - 有时想导入的是不是模板的文件并注入其内容，而无需通过模板渲染发送内容。
 - Helm 提供了通过`.Files`对象访问文件的方法。不过，在我们使用模板示例之前，有些事情需要注意：
@@ -922,7 +1089,7 @@ To learn more about the release, try:
 
 
 
-## 10.2 基本示例
+## 12.2 基本示例
 
 
 我们来写一个读取三个文件到配置映射 ConfigMap 的模板。开始之前，我们会在 chart 中添加三个文件， 直接放到mychart/目录中。
@@ -984,7 +1151,7 @@ data:
 ```
 
 
-## 10.3 Path 辅助对象
+## 12.3 Path 辅助对象
 
 ● 使用文件时，对文件路径本身执行一些标准操作会很有用。为了实现这些，Helm 从Go的 path包中导入了一些功能。 都使用了与Go包中一样的名称就可以访问。但是第一个字符使用了小写，比如Base变成了base等等。
 ● 导入的功能包括： 
@@ -993,7 +1160,7 @@ data:
   ○ Ext
   ○ IsAbs
   ○ Clean
-## 10.4 Glob patterns
+## 12.4 Glob patterns
 
 ● 当你的 chart 不断变大时，你会发现你强烈需要组织你的文件，所以我们提供了一个 Files.Glob(pattern string)方法来使用 全局模式的灵活性读取特定文件。
 ● .Glob返回一个Files类型，因此你可以在返回对象上调用任意的Files方法。
@@ -1028,7 +1195,7 @@ bar/:
 ```
 
 
-## 10.5 ConfigMap and Secrets utility functions
+## 12.5 ConfigMap and Secrets utility functions
 
 在 Helm 2.0.2 及后续版本可用。
 - 把文件内容放入配置映射和密钥是很普遍的功能，为了运行时挂载到你的pod上。为了实现它，我们提供了一些基于`Files`类型的实用方法。
@@ -1054,7 +1221,7 @@ data:
 ```
 
 
-## 10.6 Encoding
+## 12.6 Encoding
 
 
 您可以导入一个文件并使用模板的base-64方式对其进行编码来保证成功传输：
@@ -1086,7 +1253,7 @@ data:
         
 ```
 
-## 10.7 Lines
+## 12.7 Lines
 
 
 ● 有时需要访问模板中的文件的每一行。我们提供了一个方便的Lines方法。

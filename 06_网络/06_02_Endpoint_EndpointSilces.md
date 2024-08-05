@@ -377,6 +377,7 @@ endpoints:
     name: ep-test-5bb85d69d8-vfkl5  
     namespace: endpoints  
     uid: 30fea27d-bc8f-4dd7-9daa-9e03bb3d82a2  
+
 kind: EndpointSlice  
 metadata:  
   annotations:  
