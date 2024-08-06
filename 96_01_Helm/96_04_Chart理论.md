@@ -941,6 +941,122 @@ spec:
 {{- end }}
 ```
 
+### 9.4.1 helm iterate over range
+https://stackoverflow.com/questions/56224527/helm-iterate-over-range
+
+
+例子1 
+
+```
+values.yaml 
+ingress:
+  app1:
+    port: 80
+    hosts:
+      - example.com
+  app2:
+    port: 80
+    hosts:
+      - demo.example.com
+      - test.example.com
+      - stage.example.com
+  app3:
+    port: 80
+    hosts:
+      - app3.example.com
+
+-----------
+
+
+spec:
+  rules:
+  {{- range $key, $value := .Values.global.ingress }}
+  {{- range $value.hosts }}
+  - host: {{ . }}
+    http:
+      paths:
+      - path: /qapi
+        backend:
+          serviceName: api-server
+          servicePort: 80
+  {{- end }}
+  {{- end }}
+```
+
+----
+
+例子2 
+
+```yaml
+values.yaml 
+# -- List of Depolyment name of automatic performance test aws environment.
+lzm:
+  awsAccount: e2x
+  namespace: lzm
+  depolyment:
+    r240:
+      dbfv:
+        hosts:
+        - d3042e
+        - l240df1
+      arl:
+        hosts:
+        - l240ar1
+        - l240ar2
+    r242:
+      dbfv:
+        hosts:
+        - l242df1
+      arl:
+        hosts:
+        - l242ar1
+        - l242ar2
+
+```
+
+```
+
+{{- if .Values.monitoring.serviceMonitors.enabled }}
+{{- range $as := $.Values.ivuplanAs }}
+{{- range $key_1, $value_1 := $.Values.lzm.depolyment }}
+{{- range $key_2, $value_2 := $value_1 }}
+{{- range $key_3, $value_3 := $value_2 }}
+{{- range $host := $value_2.hosts }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ printf "%s-%s-%s-%s" (include "ivuplan.fullname" $) $.Values.lzm.awsAccount $host $as.name | quote }}
+  namespace: {{ $.Values.lzm.namespace | default (printf "default" ) | quote }}
+  {{/* name: {{ include "ivuplan.fullname" . }}-{{ .Values.lzm.awsAccount }}  # Notice that there should be a match between the service name and the name of the Endpoints object.
+ */}} 
+  labels:
+    {{- include "ivuplan.labels" $ | nindent 4 }}
+    depolymentName: {{ $host }}
+    awsAccount: {{ $.Values.lzm.awsAccount | quote }}
+    component: "foreground-server"
+    endpoints: foreground
+    type: nonsticky
+spec:
+  type: ExternalName
+  externalName: {{ printf "%s-%s-%s" $.Values.lzm.awsAccount $host $as.host | quote }} # e2x-d3042e-a01.ivu-cloud.local,  An externalName service can only point to a single external address. It does not support multiple entries on one Service resource. ExternalName is specifically like CNAME, which can’t have multiple records.
+  ports:
+    - name: management-nodeport
+      protocol: TCP
+      port: 32000
+      targetPort: 32000
+    - name: server-nodeport  # 要关联的endpoint 的名字 ， 为什么我们需要关联endpoint 因为 我们需要 endpoint 这个 resource中定义的 ipadrrese , 这个ipaddresse 就是 我们需要 通过 这个sevice  去访问的 pod 的ip addresse 
+      protocol: TCP
+      port: 31000  # service 的端口 
+      targetPort: 31000  # （原则上应该是 to obsevered 的pod 的端口） 此时的 targetPort 需要和 Endpoints 的 subsets.addresses.ports.port 相同 
+---
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+```
 
 
 # 10 命名模版 
