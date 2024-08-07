@@ -3,6 +3,36 @@ https://medium.com/@muppedaanvesh/a-hands-on-guide-to-kubernetes-endpoints-endpo
 
 # 1 Endpoint 
 
+Endpoint是可被访问的服务端点，即一个状态为running的pod，它是service访问的落点，只有service关联的pod才可能成为endpoint。
+
+endpoint是k8s集群中的一个资源对象，存储在etcd中，用来记录一个service对应的所有pod的访问地址。service配置selector，endpoint controller才会自动创建对应的endpoint对象；否则，不会生成endpoint对象.
+
+
+
+
+例如，k8s集群中创建一个名为hello的service，就会生成一个同名的endpoint对象，ENDPOINTS就是service关联的pod的ip地址和端口。
+
+一个 Service 由一组 backend Pod 组成。这些 Pod 通过 endpoints 暴露出来。 Service Selector 将持续评估，结果被 POST 到一个名称为 Service-hello 的 Endpoint 对象上。 当 Pod 终止后，它会自动从 Endpoint 中移除，新的能够匹配上 Service Selector 的 Pod 将自动地被添加到 Endpoint 中。 检查该 Endpoint，注意到 IP 地址与创建的 Pod 是相同的。现在，能够从集群中任意节点上使用 curl 命令请求 hello Service : 。 注意 Service IP 完全是虚拟的，它从来没有走过网络，如果对它如何工作的原理感到好奇，可以阅读更多关于 服务代理 的内容。
+
+Endpoints是实现实际服务的端点集合。
+
+Kubernetes在创建Service时，根据Service的标签选择器（Label Selector）来查找Pod，据此创建与Service同名的EndPoints对象。当Pod的地址发生变化时，EndPoints也随之变化。Service接收到请求时，就能通过EndPoints找到请求转发的目标地址。
+
+Service不仅可以代理Pod，还可以代理任意其他后端，比如运行在Kubernetes外部Mysql、Oracle等。这是通过定义两个同名的service和endPoints来实现的。
+
+在实际的生产环境使用中，通过分布式存储来实现的磁盘在mysql这种IO密集性应用中，性能问题会显得非常突出。所以在实际应用中，一般不会把mysql这种应用直接放入kubernetes中管理，而是使用专用的服务器来独立部署。而像web这种无状态应用依然会运行在kubernetes当中，这个时候web服务器要连接kubernetes管理之外的数据库，有两种方式：一是直接连接数据库所在物理服务器IP，另一种方式就是借助kubernetes的Endpoints直接将外部服务器映射为kubernetes内部的一个服务。
+
+简单认为：动态存储pod名字与pod ip对应关系的list，并提供将请求转发到实际pod上的能力
+
+
+Endpoints
+Endpoints表示一个Service对应的所有Pod副本的访问地址。
+Node上的Kube-proxy进程获取每个Service的Endpoints，实现Service的负载均衡功能。
+
+![](image/e80693961bacc62355b73be3a5d27b17.png)
+
+---
+
 
 - 为什么我们需要Service 关联endpoint 因为 我们需要 endpoint 这个 resource中定义的 ipadrrese
     - Service reosurce只定义了那些port 被暴露了出来， 却无法定义那些 ip addresse 中的 这个port 要被暴露出来 . 这时候就需要 endpoint 去 define a list of IP addresses and ports.
@@ -102,6 +132,25 @@ To understand how Kubernetes Endpoints work, let’s break down the process:
 2. **Endpoint Creation**: Kubernetes `automatically` creates an Endpoint object associated with the service. This object contains the IP addresses and ports of the pods that match the selector.
 3. **Updating Endpoints**: As pods are added or removed, or their statuses change, Kubernetes `continuously updates` the Endpoint object to reflect the current set of matching pods. This ensures that the service always routes traffic to the appropriate pods.
 
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-clusterip
+  namespace: dev
+spec:
+  selector:      # 注意看这里 用来关联对应的Pod
+    app: nginx-pod
+  clusterIP: 10.97.97.97 # service的ip地址，如果不写，默认会生成一个
+  type: ClusterIP
+  ports:
+  - name: nginx
+  - port: 80  # Service端口       
+    targetPort: 80 # pod端口
+```
+
+
 ### 1.2.2 create a service without a label selector:
 
 
@@ -152,6 +201,16 @@ An Endpoint Slice represents a subset of the endpoints that make up a service. I
 By default, the control plane creates and manages EndpointSlices to have no more than 100 endpoints each. You can configure this with the `--max-endpoints-per-slice` [kube-controller-manager](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-controller-manager/) flag, up to a maximum of **1000**.
 
 EndpointSlices can act as the source of truth for [kube-proxy](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-proxy/) when it comes to how to route internal traffic.
+
+
+
+https://blog.csdn.net/qq_33745102/article/details/127966484
+
+EndpointSlice是Endpoint对象的集合。kubernetes会给任何带选择器的Service对象创建EndpointSlice. EndpintSlice对象包含Service 选择器匹配到的所有Pod 的网络地址。EndpointSlice通过<协议，端口，Service名字> 对Endpoint进行分组。
+
+![](image/a5f29abf7fe1ed962a37f42801e36abb.png)
+
+
 
 ## 2.1 Address types
 
@@ -408,14 +467,38 @@ ports:
 In this output, you can see that the Endpoint addresses are distributed across multiple Endpoint Slices.
 
 
+# 3 Endpoint Slices 的优势 相比于 Endpoints
 
-# 3 Common Use Cases for Endpoints and Endpoint Slices
+https://blog.csdn.net/qq_33745102/article/details/127966484
+
+EndpointSlice是Endpoint对象的集合。kubernetes会给任何带选择器的Service对象创建EndpointSlice. EndpintSlice对象包含Service 选择器匹配到的所有Pod 的网络地址。EndpointSlice通过<协议，端口，Service名字> 对Endpoint进行分组。
+
+Endpoint 包含Service所有的Pod IP, 因此当一个Pod发生重启时，Pod IP发生改变，需要对整个Endpoint对象重新计算并存储。
+当Pod数量较少的情况下，这个不是大问题。但是当数量很多时，需要的大量的网络IO.
+
+当一个Pod发生重启时，EndpointSlice引入的话，只需要更新发生改变的数组元素就可以了。核心点在于在etcd里存储过程中不把整块数据一块存放（像原来Endpoint那样），而是分成几块分开存储。
+
+
+## 3.1 例子： 20,000 endpoints, 5,000 nodes
+
+可以发现当副本数量增多，网络IO是相当多的。尤其是一个Pod重启这样非常简单频繁出现的场景竟然要传输10TB的数据，而EndpointSlice方式只需要50MB.
+
+![](image/Pasted%20image%2020240807105415.png)
+
+![](image/Pasted%20image%2020240807105420.png)
+
+![](image/Pasted%20image%2020240807105426.png)
+
+
+
+
+# 4 Common Use Cases for Endpoints and Endpoint Slices
 
 1. **Load Balancing**: Both Endpoints and Endpoint Slices enable Kubernetes services to distribute traffic evenly across multiple pods, ensuring high availability and efficient resource utilization.
 2. **Service Discovery**: By maintaining a dynamic list of IP addresses for matching pods, Endpoints and Endpoint Slices facilitate seamless service discovery within a cluster.
 3. **Health Monitoring**: Continuous updates to Endpoints and Endpoint Slices ensure that only healthy pods receive traffic, improving the reliability of your applications.
 
-# 4 Best Practices for Working with Endpoints and Endpoint Slices
+# 5 Best Practices for Working with Endpoints and Endpoint Slices
 
 1. **Use Readiness Probes**: Ensure that your pods are ready to receive traffic before they are added to an Endpoint or Endpoint Slice. Kubernetes provides readiness probes to help with this.
 2. **Avoid Manual Management**: Let Kubernetes manage Endpoints and Endpoint Slices `automatically`. Manual management can lead to inconsistencies and increased operational overhead.
