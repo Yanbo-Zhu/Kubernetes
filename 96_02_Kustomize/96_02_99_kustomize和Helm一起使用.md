@@ -66,6 +66,23 @@ patchesStrategicMerge:
 In this example, the Helm chart _myapp_ is included as a resource in the _kustomization.yaml_ file specifying the chart repository, version, and values file. Additionally, _patch.yaml_ contains the Kustomize patches to customize the deployed resources.
 
 
+values的改变 的给可以使用 vulesInline
+```
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+helmCharts:
+- name: mlflow-server
+  repo: https://strangiato.github.io/helm-charts/
+  version: "0.5.7"
+  releaseName: mlflow-server
+  namespace: my-namespace
+  valuesFile: values.yaml
+  valuesInline:
+    fullnameOverride: helloagain
+
+```
+
 # 3 
 
 https://github.com/kubernetes-sigs/kustomize/blob/master/examples/chart.md#build-the-base-and-the-variants
@@ -403,14 +420,17 @@ Maintain a _local, inflated fork_ of a remote configuration, and have a human re
 
 
 
+# 4 `kustomize build . --enable-helm`.
+
+
+From your local environment, you can render the chart by running `kustomize build . --enable-helm`.
 
 
 
 
+# 5 其他
 
-# 4 其他
-
-## 4.1 ChartInflator插件
+## 5.1 ChartInflator插件
 
 >用写好kustomization 文件, 渲染某个已经存在的Helm Charts, 使得这个charts中添加一些内容
 
@@ -496,7 +516,7 @@ $ kustomize build --enable_alpha_plugins .
 正常渲染完成后我们可以看到所有的资源上都被添加了一个 `env: dev` 的标签，这是实时完成的，不需要维护任何额外的文件的。
 
 
-## 4.2 用单个清单文件定制
+## 5.2 用单个清单文件定制
 
 另一种使用 Kustomize 定制 Chart 的方法是使用 `helm template` 命令来生成一个单一的资源清单，这种方式可以对 Chart 进行更多的控制，但它需要更多的工作来出来处理更新该生成文件的版本控制。
 
@@ -575,7 +595,7 @@ $ kustomize build .
 
 这种方法，需要以某种方式运行 make 命令来生成更新的一体化资源清单文件，另外，要将更新过程与你的 GitOps 工作流整合起来可能有点麻烦。
 
-## 4.3 使用 Post Rendering 定制
+## 5.3 使用 Post Rendering 定制
 
 **Post Rendering** 是 Helm 3 带来的一个新功能，在前面的2种方法中，Kustomize 是用来处理生成图表清单的主要工具，但在这里，Kustomize 是作为 Helm 的辅助工具而存在的。
 
@@ -608,7 +628,7 @@ $ helm template vault hashicorp/vault --post-renderer ./kustomize-wrapper.sh
 这种方法就是需要管理一个额外的脚本，其余的和第一种方式基本上差不多，只是不使用 Kustomize 的插件，而是直接使用 Helm 本身的功能来渲染上游的 Chart 包。
 
 
-## 4.4 enable Kustomizing Helm charts
+## 5.4 enable Kustomizing Helm charts
 
 It's possible to render Helm charts with Kustomize. Doing so requires that you pass the --enable-helm flag to the kustomize build command. This flag is not part of the Kustomize options within Argo CD. 
 
