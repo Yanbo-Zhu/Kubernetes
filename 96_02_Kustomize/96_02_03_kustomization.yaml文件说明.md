@@ -567,7 +567,645 @@ EOF
 `kubectl kustomize ./` 所得到的资源中既包含 Deployment 也包含 Service 对象。
 
 
-## 4.2 Patches
+
+
+# 5 Demo: Inline Patch 很好的例子 
+https://github.com/kubernetes-sigs/kustomize/blob/master/examples/inlinePatch.md
+
+A kustomization file supports patching in three ways:
+- patchesStrategicMerge: A list of patch files where each file is parsed as a [Strategic Merge Patch].
+- patchesJSON6902: A list of patches and associated targets, where each file is parsed as a [JSON Patch] and can only be applied to one target resource.
+- patches: A list of patches and their associated targets. The patch can be applied to multiple objects. It auto detects whether the patch is a [Strategic Merge Patch] or [JSON Patch].
+
+Since 3.2.0, all three support inline patch, where the patch content is put inside the kustomization file as a single string. With this feature, no separate patch files need to be created.
+
+Make a base kustomization containing a Deployment resource.
+<!-- @createKustomization @test -->
+```
+DEMO_HOME=$(mktemp -d)
+
+BASE=$DEMO_HOME/base
+mkdir $BASE
+
+cat <<EOF >$BASE/kustomization.yaml
+resources:
+- deployments.yaml
+EOF
+
+cat <<EOF >$BASE/deployments.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy
+spec:
+  template:
+    metadata:
+      labels:
+        foo: bar
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+          args:
+          - one
+          - two
+EOF
+```
+
+
+## 5.1 Inline Patch
+
+Create an overlay and add an inline patch in the `patches` field to the kustomization file
+to change the image from `nginx` to `nginx:latest`.
+
+<!-- @addSMPatch @test -->
+```
+SMP_OVERLAY=$DEMO_HOME/smp
+mkdir $SMP_OVERLAY
+cat <<EOF >$SMP_OVERLAY/kustomization.yaml
+resources:
+- ../base
+
+patches:
+- patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: deploy
+    spec:
+      template:
+        spec:
+          containers:
+          - name: nginx
+            image: nginx:latest
+          
+EOF
+```
+
+Running `kustomize build $SMP_OVERLAY`, in the output confirm that image is updated successfully.
+
+<!-- @confirmSMPatch @test -->
+```
+test 1 == \
+  $(kustomize build $SMP_OVERLAY | grep "image: nginx:latest" | wc -l); \
+  echo $?
+```
+
+The output is
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy
+spec:
+  template:
+    metadata:
+      labels:
+        foo: bar
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:latest
+          args:
+          - one
+          - two
+```
+
+`$patch: delete` and `$patch: replace` also work in the inline patch. Change the inline patch to delete the container `nginx`.
+
+<!-- @addDeleteSMPatch @test -->
+```
+cat <<EOF >$SMP_OVERLAY/kustomization.yaml
+resources:
+- ../base
+
+patches:
+- patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: deploy
+    spec:
+      template:
+        spec:
+          containers:
+          - name: nginx
+            $patch: delete
+          
+EOF
+```
+Running `kustomize build $SMP_OVERLAY`, in the output confirm that the `nginx` container has been deleted.
+
+<!-- @confirmDeleteSMPatch @test -->
+```
+test 0 == \
+  $(kustomize build $SMP_OVERLAY | grep "image: nginx" | wc -l); \
+  echo $?
+```
+
+The output is
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy
+spec:
+  template:
+    metadata:
+      labels:
+        foo: bar
+    spec:
+      containers: []
+```
+
+## 5.2 Inline Patch for PatchesJson6902
+
+Create an overlay and add an inline patch in `patchesJSON6902` field to the kustomization file
+to change the image from `nginx` to `nginx:latest`.
+
+<!-- @addJSONPatch @test -->
+```
+JSON_OVERLAY=$DEMO_HOME/json
+mkdir $JSON_OVERLAY
+cat <<EOF >$JSON_OVERLAY/kustomization.yaml
+resources:
+- ../base
+
+patchesJSON6902:
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: deploy
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/image
+      value: nginx:latest
+EOF
+```
+
+Running `kustomize build $JSON_OVERLAY`, in the output confirm that image is updated successfully.
+
+<!-- @confirmJSONPatch @test -->
+```
+test 1 == \
+  $(kustomize build $JSON_OVERLAY | grep "image: nginx:latest" | wc -l); \
+  echo $?
+```
+
+The output is
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy
+spec:
+  template:
+    metadata:
+      labels:
+        foo: bar
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:latest
+          args:
+          - one
+          - two
+```
+
+## 5.3 Inline Patch for Patches
+
+Create an overlay and add an inline patch in `patches` field to the kustomization file
+to change the image from `nginx` to `nginx:latest`.
+
+<!-- @addPatch @test -->
+```
+PATCH_OVERLAY=$DEMO_HOME/patch
+mkdir $PATCH_OVERLAY
+cat <<EOF > $PATCH_OVERLAY/kustomization.yaml
+resources:
+- ../base
+
+patches:
+- target:
+    kind: Deployment
+    name: deploy   # 哪个文件会被打补丁 
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: deploy
+    spec:
+      template:
+        spec:
+          containers:
+          - name: nginx
+            image: nginx:latest
+EOF
+```
+
+Running `kustomize build $PATCH_OVERLAY`, in the output confirm that image is updated successfully.
+
+<!-- @confirmPatch @test -->
+```
+test 1 == \
+  $(kustomize build $PATCH_OVERLAY | grep "image: nginx:latest" | wc -l); \
+  echo $?
+```
+
+The output is
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy
+spec:
+  template:
+    metadata:
+      labels:
+        foo: bar
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:latest
+          args:
+          - one
+          - two
+```
+
+
+## 5.4 external patch.yaml in patches 
+
+https://github.com/kubernetes-sigs/kustomize/blob/master/examples/patchMultipleObjects.md
+
+kustomize supports patching via either a strategic merge patch (wherein you partially re-specify the thing you want to modify, with in-place changes) or a JSON patch (wherein you specify specific operation/target/value tuples in a particular syntax).
+
+A kustomize file lets one specify many patches. Each patch must be associated with a target selector:
+
+```yaml
+patches:
+  - path: <relative path to file containing patch>
+    target:
+      group: <optional group>
+      version: <optional version>
+      kind: <optional kind>
+      name: <optional name or regex pattern>
+      namespace: <optional namespace>
+      labelSelector: <optional label selector>
+      annotationSelector: <optional annotation selector>
+```
+
+
+E.g. select resources with name matching the regular expression foo.*:
+
+    target:
+      name: foo.*
+
+Select all resources of kind Deployment:
+
+    target:
+      kind: Deployment
+
+Using multiple fields just makes the target more specific. The following selects only Deployments that also have the label app=hello (full label/annotation selector rules):
+
+    target:
+      kind: Deployment
+      labelSelector: app=hello
+
+
+### 5.4.1 Demo
+
+[](https://github.com/kubernetes-sigs/kustomize/blob/master/examples/patchMultipleObjects.md#demo)
+
+The example below shows how to inject a sidecar container for multiple Deployment resources.
+
+Make a place to work:
+
+```
+DEMO_HOME=$(mktemp -d)
+```
+
+Make a file describing two Deployments:
+
+```
+cat <<EOF >$DEMO_HOME/deployments.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    old-label: old-value
+  name: deploy1
+spec:
+  template:
+    metadata:
+      labels:
+        old-label: old-value
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+          args:
+          - one
+          - two
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    key: value
+  name: deploy2
+spec:
+  template:
+    metadata:
+      labels:
+        key: value
+    spec:
+      containers:
+        - name: busybox
+          image: busybox
+EOF
+```
+
+Declare a [strategic merge patch](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-api-machinery/strategic-merge-patch.md) file to inject a sidecar container:
+
+```
+cat <<EOF >$DEMO_HOME/patch.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: not-important
+spec:
+  template:
+    spec:
+      containers:
+        - name: istio-proxy
+          image: docker.io/istio/proxyv2
+          args:
+          - proxy
+          - sidecar
+EOF
+```
+
+Finally, define a kustomization file that specifies both a `patches` and `resources` entry:
+
+```
+cat <<EOF >$DEMO_HOME/kustomization.yaml
+resources:
+- deployments.yaml
+
+patches:
+- path: patch.yaml
+  target:
+    kind: Deployment
+EOF
+```
+
+Two deployment will be patched, the expected result is:
+
+```
+cat <<EOF >$DEMO_HOME/out_expected.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    old-label: old-value
+  name: deploy1
+spec:
+  template:
+    metadata:
+      labels:
+        old-label: old-value
+    spec:
+      containers:
+      - args:
+        - proxy
+        - sidecar
+        image: docker.io/istio/proxyv2
+        name: istio-proxy
+      - args:
+        - one
+        - two
+        image: nginx
+        name: nginx
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    key: value
+  name: deploy2
+spec:
+  template:
+    metadata:
+      labels:
+        key: value
+    spec:
+      containers:
+      - args:
+        - proxy
+        - sidecar
+        image: docker.io/istio/proxyv2
+        name: istio-proxy
+      - image: busybox
+        name: busybox
+EOF
+```
+
+Run the build:
+
+```
+kustomize build $DEMO_HOME >$DEMO_HOME/out_actual.yaml
+```
+
+Confirm expectations:
+
+```
+diff $DEMO_HOME/out_actual.yaml $DEMO_HOME/out_expected.yaml
+```
+
+Let us do one more try. Redefine a kustomization file. This time only patch one deployment whose label is "key: value".
+
+```
+cat <<EOF >$DEMO_HOME/kustomization.yaml
+resources:
+- deployments.yaml
+
+patches:
+- path: patch.yaml
+  target:
+    kind: Deployment
+    labelSelector: key=value
+EOF
+```
+
+Run the build:
+
+```
+kustomize build $DEMO_HOME 
+```
+
+Confirm expectations:
+
+```
+Only deploy2 is patched since its label matches "labelSelector: key=value". No change for deploy1.
+```
+
+
+### 5.4.2 Demo2 
+
+https://medium.com/@tharukam/generate-kubernetes-manifests-with-helm-charts-using-kustomize-2f82ab5c5f11
+
+Now, let’s dive into the process of using Kustomize to augment your Helm Charts. You can provide a `values.yaml` file to Helm, which contains configuration settings tailored to your environment. This allows you to override default values defined in the Helm Chart templates. First let's see how we can build a kustomization file to generate Kubernetes manifests for our Helm chart
+
+```
+# kustomization.yaml  
+
+apiVersion: kustomize.config.k8s.io/v1beta1  
+kind: Kustomization  
+  
+helmCharts:  
+- name: mergestat  
+  repo: https://helm.mergestat.com/  
+  releaseName: mergestat  
+  namespace: admin  
+  version: 0.1.0  
+  valuesFile: values.yaml
+```
+
+```
+
+# Example values.yaml file  
+
+worker:  
+  replicaCount: 1  
+  image:  
+    repository: mergestat/worker  
+    pullPolicy: Always  
+  env:  
+  - name: POSTGRES_CONNECTION  
+    valueFrom:  
+      secretKeyRef:  
+        name: mergestat-postgresql  
+        key: postgresql-uri  
+  - name: CONCURRENCY  
+    value: "3"  
+  - name: ENCRYPTION_SECRET  
+    valueFrom:  
+      secretKeyRef:  
+        name: mergestat-secrets  
+        key: encryption-secret  
+  
+graphql:  
+  replicaCount: 1  
+  image:  
+    repository: mergestat/graphql  
+    pullPolicy: Always  
+  env:  
+  - name: POSTGRES_CONNECTION  
+    valueFrom:  
+      secretKeyRef:  
+        name: mergestat-postgresql  
+        key: postgresql-uri  
+  - name: JWT_SECRET  
+    valueFrom:  
+      secretKeyRef:  
+        name: mergestat-secrets  
+        key: jwt-secret  
+  - name: ENCRYPTION_SECRET  
+    valueFrom:  
+      secretKeyRef:  
+        name: mergestat-secrets  
+        key: encryption-secret  
+  
+ui:  
+  replicaCount: 1  
+  image:  
+    repository: mergestat/console  
+    pullPolicy: Always  
+  env:  
+  - name: POSTGRAPHILE_API  
+    value: http://mergestat-graphql:5433/graphql  
+  - name: POSTGRES_CONNECTION  
+    valueFrom:  
+      secretKeyRef:  
+        name: mergestat-postgresql  
+        key: postgresql-uri  
+  - name: JWT_SECRET  
+    valueFrom:  
+      secretKeyRef:  
+        name: mergestat-secrets  
+        key: jwt-secret  
+  
+postgresql:  
+# 8 https://github.com/bitnami/charts/tree/master/bitnami/postgresql  
+  enabled: false
+```
+
+You can use the following link as a reference to see what are the supported fields in the helmCharts field: [Link](https://kubectl.docs.kubernetes.io/references/kustomize/builtins/#_helmchartinflationgenerator_)
+
+Incorporating Kustomize patches further enhances your customization capabilities. You can apply Kustomize patches to modify Helm Chart templates selectively. These patches can target specific resources within the Helm Chart and make adjustments without altering the original Chart files.
+
+Let's add a nodeAffinity patch to the kustomization file as well.
+
+
+
+```
+#  Patch File for nodeAffinity  
+
+apiVersion: apps/v1  
+kind: Deployment  
+metadata:  
+  name: node_affinity_deployment  
+spec:  
+  template:  
+    spec:  
+      affinity:  
+        nodeAffinity:  
+          requiredDuringSchedulingIgnoredDuringExecution:  
+            nodeSelectorTerms:  
+            - matchExpressions:  
+              - key: <key from node labels>  
+                operator: In  
+                values:  
+                - <value to match>
+```
+
+```
+# 10 kustomization.yaml  
+apiVersion: kustomize.config.k8s.io/v1beta1  
+kind: Kustomization  
+  
+helmCharts:  
+- name: mergestat  
+  repo: https://helm.mergestat.com/  
+  releaseName: mergestat  
+  namespace: admin  
+  version: 0.1.0  
+  valuesFile: values.yaml  
+  
+patches:  
+- path: patches/node_affinity_deployment.yaml  
+  target:  
+    kind: Deployment
+```
+
+After configuring your needs you can use the below commands to inflate your helm charts to Kubernetes manifest files
+
+```
+mkdir build  
+kustomize build -o build --enable-helm
+```
+
+In the above commands, you can see the `--enable-helm` flag which tells kustomize to use the helm client. This command will download the Helm chart to your local machine before generating Kubernetes manifests.
+
+![](https://miro.medium.com/v2/resize:fit:499/1*L2FMlTHhH13_Ul5kvl034Q.png)
+
+# 6 Patch功能 另外的解释
+
+
+[Strategic Merge Patch]: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-api-machinery/strategic-merge-patch.md
+[JSON Patch]: https://tools.ietf.org/html/rfc6902
+## 6.1 Patches
 
 patches` 在资源上添加或覆盖字段，Kustomization 使用 `patches` 字段来提供该功能。
 
@@ -670,7 +1308,9 @@ spec:
 
 
 
-## 4.3 patchesStrategicMerge
+## 6.2 patchesStrategicMerge 
+
+==现在已经不怎么使用patchesStrategicMerge 这个关键词了 改用 patches 这个关键词 相关是一样的 ， 见章节 external patch.yaml in patches ==
 
 补丁文件（Patches）可以用来对资源执行不同的定制。 Kustomize 通过 `patchesStrategicMerge` 和 `patchesJson6902` 支持不同的打补丁机制。 `patchesStrategicMerge` 的内容是一个文件路径的列表，其中每个文件都应可解析为 [策略性合并补丁（Strategic Merge Patch）](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-api-machinery/strategic-merge-patch.md)。 补丁文件中的名称必须与已经加载的资源的名称匹配。 建议构造规模较小的、仅做一件事情的补丁。 例如，构造一个补丁来增加 Deployment 的副本个数；构造另外一个补丁来设置内存限制。
 
@@ -678,7 +1318,7 @@ spec:
 patchesStrategicMerge则主要是用于**overlay下的kustomization.yaml中**, 用于使用打patch的方式将该字段指定的文件合并到base目录下对应的内容上.
 
 
-### 4.3.1 例子1
+### 6.2.1 例子1
 
 比如, 现在需要1box环境中，在base声明的deployment.yaml的基础上，给`p-expoter`容器增加一个环境变量
 那么就新增overlay/1box/1box-custom-env.yaml
@@ -738,7 +1378,7 @@ patchesStrategicMerge:
 比如修改replicas, 如果在`kustomization.yaml中修改成了2， 在`patchesStrategicMerge`又修改成了10` , 结果以`kustomization.yaml`中的为准，也就是最终replicas = 2
 
 
-### 4.3.2 例子2
+### 6.2.2 例子2
 
 ```shell
 # 创建 deployment.yaml 文件
@@ -826,7 +1466,7 @@ spec:
             memory: 512Mi
 ```
 
-## 4.4 patchesJson6902
+## 6.3 patchesJson6902
 
 并非所有资源或者字段都支持策略性合并补丁。为了支持对任何资源的任何字段进行修改， Kustomize 提供通过 `patchesJson6902` 来应用 [JSON 补丁](https://tools.ietf.org/html/rfc6902)的能力。 为了给 JSON 补丁找到正确的资源，需要在 `kustomization.yaml` 文件中指定资源的组（group）、 版本（version）、类别（kind）和名称（name）。 例如，为某 Deployment 对象增加副本个数的操作也可以通过 `patchesJson6902` 来完成：
 
@@ -901,7 +1541,7 @@ spec:
 ```
 
 
-# 5 image
+# 7 image
 
 除了补丁之外，Kustomize 还提供定制容器镜像或者将其他对象的字段值注入到容器中的能力，并且不需要创建补丁。 例如，你可以通过在 `kustomization.yaml` 文件的 `images` 字段设置新的镜像来更改容器中使用的镜像。
 
@@ -964,7 +1604,7 @@ spec:
 ```
 
 
-# 6 components
+# 8 components
 
 Kustomize [components](https://github.com/kubernetes-sigs/kustomize/blob/master/examples/components.md) encapsulate both resources and patches together. They provide a powerful way to modularize and reuse configuration in Kubernetes applications.
 
@@ -1000,7 +1640,7 @@ spec:
 
 
 
-# 7 kustomization.yaml中贯穿性字段
+# 9 kustomization.yaml中贯穿性字段
 
 
 在项目中为所有 Kubernetes 对象设置贯穿性字段是一种常见操作。 贯穿性字段的一些使用场景如下：
@@ -1076,15 +1716,15 @@ spec:
 
 
 
-## 7.1 commonLables/commonAnnotations
+## 9.1 commonLables/commonAnnotations
 指定了commonLables的话， 则会在所有的资源resources包含的对象上都会加上该label， 支持指定多个，这样就省去了对k8s的yaml中手工地指定label
 commonAnnotations同理.
 
 
-## 7.2 namespace
+## 9.2 namespace
 同上
 
-## 7.3 namePrefix/nameSuffix
+## 9.3 namePrefix/nameSuffix
 
 这两个实现给所有的资源的名字加上前缀或者后缀，以`-`进行隔离， 非常容易理解，主要用于overlay下
 常用的也就这些了，还有一些其它的配置就不一一介绍了，官网上都非常的详细.
@@ -1178,7 +1818,7 @@ spec:
 
 
 
-# 8 基准（Bases）与覆盖（Overlays） 
+# 10 基准（Bases）与覆盖（Overlays） 
 
 Kustomize 中有 基准（bases） 和 覆盖（overlays） 的概念区分。 基准 是包含 kustomization.yaml 文件的一个目录，其中包含一组资源及其相关的定制。 基准可以是本地目录或者来自远程仓库的目录，只要其中存在 kustomization.yaml 文件即可。 覆盖 也是一个目录，其中包含将其他 kustomization 目录当做 bases 来引用的 kustomization.yaml 文件。 基准不了解覆盖的存在，且可被多个覆盖所使用。 覆盖则可以有多个基准，且可针对所有基准中的资源执行组织操作，还可以在其上执行定制。
 
@@ -1253,7 +1893,7 @@ EOF
 
 
 
-# 9 Transformer
+# 11 Transformer
 
 向所有资源添加注释（非标识元数据）。和标签一样，它们也是键值对。
 
@@ -1262,7 +1902,7 @@ commonAnnotations:
   oncallPager: 800-555-1212
 ```
 
-## 9.1 通过 `transformers` 字段使用
+## 11.1 通过 `transformers` 字段使用
 
 在 Kustomize 中，`transformers` 字段允许你指定一系列转换器，这些转换器可以对原始的资源清单进行修改和调整。
 
@@ -1294,7 +1934,7 @@ imageTag:
   newTag: v2
 ```
 
-### 9.1.1 LabelTransformer
+### 11.1.1 LabelTransformer
 
 为所有资源和选择器添加标签
 
@@ -1305,7 +1945,7 @@ commonLabels:
   app: bingo
 ```
 
-### 9.1.2 NamespaceTransformer
+### 11.1.2 NamespaceTransformer
 
 将命名空间添加到所有资源
 
