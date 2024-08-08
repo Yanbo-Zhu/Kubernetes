@@ -1,9 +1,69 @@
 
+
+# 1 一般流程 
+
+helm package .
+
+helm push ivuplan-0.1.7.tgz oci://jfrog.ivu.de/ep-helm-dev
+
+helm pull oci://jfrog.ivu.de/ep-helm-dev/ivuplan
+
+
+# 2 产生一个chart 的 index file
+
+
+https://helm.sh/docs/helm/helm_repo_index/
+helm repo index
+generate an index file given a directory containing packaged charts
+
+
+https://medium.com/containerum/how-to-make-and-share-your-own-helm-package-50ae40f6c221
+
+Now we are going to add our chart to that repo:
+```
+
+$ helm package my-app  
+$ mv my-app-0.1.0.tgz helm-example  
+$ helm repo index helm-example/ --url [https://gree-gorey.github.io/helm-example/](https://gree-gorey.github.io/helm-example/)
+```
+
+The last command generates `index.yaml` file. Let’s take a look at it:
+```
+$ cat helm-example/index.yaml   
+apiVersion: v1  
+entries:  
+  my-app:  
+  - apiVersion: v1  
+    appVersion: "1.0"  
+    created: 2018-03-30T14:00:56.531328411Z  
+    description: A Helm chart for Kubernetes  
+    digest: 29089aabaa8aa08a03215098b1982ad38f6cd9de1c9b25ff842003a53cad881d  
+    name: my-app  
+    urls:  
+    - https://gree-gorey.github.io/helm-example/my-app-0.1.0.tgz  
+    version: 0.1.0  
+generated: 2018-03-30T14:00:56.530846921Z
+```
+
+
+Now commit & push the changes:
+```
+$ git commit -a -m "change index"  
+$ git push origin
+```
+
+
+# 3 Nexus repo as Helm Repositories
+
+https://help.sonatype.com/en/helm-repositories.html
+
+
+# 4 Harbor作为chart库
 https://www.yuque.com/fairy-era/yg511q/ar93ua#f6609716
 
-# 1 安装 Harbor
+## 4.1 安装 Harbor
 
-## 1.1 前提条件
+### 4.1.1 前提条件
 
 - ① Kubernetes版本：v 1.21.10。
 - ② Helm 版本：v 3.6.3 。
@@ -11,7 +71,7 @@ https://www.yuque.com/fairy-era/yg511q/ar93ua#f6609716
 - ③ Ingress （本人是在每个 Node 节点上都安装 Ingress 的）。
 
 
-## 1.2 Harbor 核心组件
+### 4.1.2 Harbor 核心组件
 
 ![](image/1.webp)
 
@@ -24,7 +84,7 @@ https://www.yuque.com/fairy-era/yg511q/ar93ua#f6609716
 ● Log：为了帮助监控 Harbor 运行，负责收集其他组件的 log，记录到 syslog 中。
 
 
-## 1.3 安装 Harbor
+### 4.1.3 安装 Harbor
 
 生成 TLS 证书：
 
@@ -142,15 +202,15 @@ kubectl get ing -n devops\
 登录到 Harbor ，默认的用户名是 admin ，默认的密码是 Harbor12345 ：
 
 
-# 2 Harbor使用 
+## 4.2 Harbor使用 
 
 
-## 2.1 Harbor 新建项目
+### 4.2.1 Harbor 新建项目
 
 - Harbor 是以项目为单位的，所以需要新建项目：
 
 
-## 2.2 Docker 推送镜像到 Harbor 仓库中
+### 4.2.2 Docker 推送镜像到 Harbor 仓库中
 
 
 1
@@ -209,7 +269,7 @@ docker push harbor.xudaxian.com/mall/nginx:v1.0
 
 
 
-# 3 推送 Chart 
+## 4.3 推送 Chart 
 
 阿里云、腾讯云等云厂商都提供了 Chart 仓库的功能，但是这些都是企业版的，需要收费；所以，我采取将 Chart 推送到 Helm 的 中央仓库 以及使用 Harbor 作为演示。
 
@@ -220,7 +280,7 @@ docker push harbor.xudaxian.com/mall/nginx:v1.0
 
 
 
-## 3.1 开源项目将 Chart 推送到 Helm 的中央仓库, 通过 Github
+### 4.3.1 开源项目将 Chart 推送到 Helm 的中央仓库, 通过 Github
 
 ![](image/20.webp)
 
@@ -325,7 +385,7 @@ helm install mall xudaxian/mall
 
 
 
-## 3.2 Helm 3.7 及以下客户端版本推送 Chart 到 Harbor
+### 4.3.2 Helm 3.7 及以下客户端版本推送 Chart 到 Harbor
 
 1
 开启 Helm 3 的客户端实验特性
@@ -378,7 +438,7 @@ ref：harbor的域名/项目/chart名称:tag
 
 
 
-## 3.3 Helm 3.8 推送 Chart 到 Harbor
+### 4.3.3 Helm 3.8 推送 Chart 到 Harbor
 
 
 1
