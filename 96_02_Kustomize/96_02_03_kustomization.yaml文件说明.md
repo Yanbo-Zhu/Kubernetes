@@ -17,7 +17,7 @@ commonLabels:
   k8s-app: p-expoter # 会在所有的资源对象上都会加上该label  
   namespace: stage # 会在所有的资源对象上都指定该ns  
   
-# configMapGenerator:   # secretGenerator  
+# configMapGenerator:   # 也可以写为 secretGenerator  
 # - name: special-config  
 #   files:  
 #     - configmap.yaml  
@@ -122,10 +122,16 @@ https://kubernetes.io/zh-cn/docs/tasks/manage-kubernetes-objects/kustomization/
 格式如上代码所示，这部分也会渲染到最终的yaml文件中， 因此，**除了resources指定的资源外, 还能通过这种方式生成部署对象**
 
 
+```
+# configMapGenerator:   # secretGenerator  
+# - name: special-config  
+#   files:  
+#     - configmap.yaml 
+```
+`configMapGenerator` 可以生成 config map，为 files 中 每一个文件 中的每一条都会生成一个 configmap 类型的资源 
+configmap.yaml  中的内容 就作为  configmap 类型的资源  的manifest 中的  data 这个 entry 的具体内容 
 
 1 要基于File来生成 ConfigMap
-
-
 `cat kustomization.yaml`
 
 ```
@@ -170,7 +176,7 @@ EOF
 kubectl kustomize ./
 ```
 
-所生成的 ConfigMap 为：
+所生成的 king 类型为  ConfigMap 的文件中的内特容为 ：
 
 ```yaml
 apiVersion: v1
@@ -477,7 +483,7 @@ configMapGenerator:
   - FOO=Bar
 generatorOptions:
   disableNameSuffixHash: true
-  labels:
+  labels:   # 加入这个鞋 label 到 生成额 configmap 的manifest 的 metadata 下面去 为一行行的文本 
     type: generated
   annotations:
     note: generated
@@ -500,7 +506,6 @@ metadata:
     type: generated
   name: example-configmap-3
 ```
-
 
 
 
