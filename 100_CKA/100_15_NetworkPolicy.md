@@ -1,7 +1,10 @@
 
 
+
 官方参考地址：[网络策略 | Kubernetes](https://kubernetes.io/zh/docs/concepts/services-networking/network-policies/ "网络策略 | Kubernetes")
 https://kubernetes.io/zh/docs/concepts/services-networking/network-policies/
+
+ Concepts → Services, Load Balancing, and Networking → Network Policies
 
 # 1 同一个 namespace 之间的pods 访问
 
@@ -19,6 +22,7 @@ https://kubernetes.io/zh/docs/concepts/services-networking/network-policies/
 确保新的NetworkPolicy：
 -不允许对没有在监听端口9200的pods访问
 -不允许不来自namespace my-app的pods的访问
+
 
 
 ## 1.2 解题
