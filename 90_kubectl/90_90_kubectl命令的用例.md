@@ -218,7 +218,7 @@ This will open a shell inside of your application container. You can now execute
 
 # 4 ssh into a container in a poad
 
-### 4.1.1 
+## 4.1 
 
 kubectl describe pod prom-grafana-69d87c84f9-d9pxj
 选中 你你想要进入的 container 的name 和 id 
