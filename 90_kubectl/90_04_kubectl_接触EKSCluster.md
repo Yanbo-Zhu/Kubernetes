@@ -214,13 +214,15 @@ https://confluence.ivu.de/display/SYS/k8s+Single+Node+Clusters+by+Puppet+for+QS2
 
 To control the cluster with kubectl remotely from another host, perform the following steps.
 
-1 
+#### 4.2.1.1 windows 中
 Install the configuration file for access to your cluster, either
-1. On a single-node AWS system download [`http://e20-<environment>-a01.ivu-cloud.local/kubeconfig.txt`] (`http://e20-%3cenvironment%3e-a01.ivu-cloud.local/kubeconfig.txt` ), rename the resulting file to config and copy it into `c:\Users\yzh\.kube\config-e20-d2034`,  the directory created in the previous step, or
-2. Copy the file `/root/.kube/config `from the Kubernetes Host into the directory created in the previous step, `c:\Users\yzh\.kube\config-e20-d2034`.
+1. Copy the file `/root/.kube/config `from the Kubernetes Host in aws umgebung into the directory created in the previous step, `c:\Users\yzh\.kube\config-e20-d2034`.  or 
+2. On a single-node AWS system download [`http://e20-<environment>-a01.ivu-cloud.local/kubeconfig.txt`] (`http://e20-%3cenvironment%3e-a01.ivu-cloud.local/kubeconfig.txt` ), rename the resulting file to config and copy it into `c:\Users\yzh\.kube\config-e20-d2034`,  the directory created in the previous step, or
+
+
 
 某个 single node cluster 中的内容 
-将   name: Default, current-context: Default 改为   name: e20-d2034  current-context: e20-d2034   , 然后将 整个文件存到 `c:\Users\yzh\.kube\config-e20-d2034` 中 
+将   name: Default, current-context: Default 改为   name: e20-d2034 ,   current-context: e20-d2034   , 然后将 整个文件存到 `c:\Users\yzh\.kube\config-e20-d2034` 中 
 
 ```
 apiVersion: v1
@@ -254,12 +256,29 @@ users:
 You are now connected as cluster admin to Kubernetes. Note that in this role, you may not only monitor, but also reconfigure and inherently misconfigure / destroy resources in the Kubernetes cluster. On the other hand, this is a Dedicated Single Node Cluster, hence the only system that may be harmed is this dedicated cluster and the IVU.plan environment within.
 
 
-### 4.2.2 查到你想访问的 cluster 的  content name 
+### 4.2.2 wsl 中 
+
+
+在 ~/.bashrc add
+
+```
+export KUBECONFIG="${KUBECONFIG}:config-demo:config-demo-2"
+
+export KUBECONFIG="${KUBECONFIG}:${HOME}/.kube/config"
+
+export KUBECONFIG="${KUBECONFIG}:${HOME}/.kube/config:/mnt/c/Users/yzh/.kube/config-e20-d3042:/mnt/c/Users/yzh/.kube/config-e20-d3042b:/mnt/c/Users/yzh/.kube/config-e20-eks-cluster-main:/mnt/c/Users/yzh/.kube/config-e2x-eks-cluster-dev:/mnt/c/Users/yzh/.kube/config-e2x-eks-cluster-eks-dev-ex"
+
+将 新的 kubeconfig 文件的路径  添加到 KUBECONFIG 最后 ， 然后 执行 source ~/.bashrc 
+```
+
+
+
+### 4.2.3 查到你想访问的 cluster 的  content name 
 
 执行  kubectl config view, 查到你想访问的 cluster 的  content name 
 
 
-### 4.2.3 验收
+### 4.2.4 验收
 1 
 在非 `c:\Users\yzh\.kube` 路径下 ,  随便哪个路径下
 
