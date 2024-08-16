@@ -176,7 +176,7 @@ EOF
 kubectl kustomize ./
 ```
 
-所生成的 king 类型为  ConfigMap 的文件中的内特容为 ：
+所生成的  类型为  ConfigMap 的文件中的内特容为 ：
 
 ```yaml
 apiVersion: v1
@@ -457,12 +457,13 @@ spec:
       volumes:
       - name: password
         secret:
-          secretName: example-secret-1
+          secretName: example-secret-1  # 注意这里
 EOF
 
 cat <<EOF >./kustomization.yaml
 resources:
 - deployment.yaml
+
 secretGenerator:
 - name: example-secret-1
   files:
