@@ -15,7 +15,6 @@ https://kubernetes.io/zh/docs/concepts/services-networking/network-policies/
 
 设置配置环境kubectl config use-context k8s
 
-
 创建一个名为allow-port-from-namespace的新NetworkPolicy，以允许现有namespace my-app 中的Pods连接到同一namespace中其他pods的端口9200。
 在现有的 namespace my-app 中创建一个名为 allow-port-from-namespace 的新 NetworkPolicy。 
 
@@ -42,10 +41,16 @@ kubectl label ns my-app project=my-app
 
 3、编写yaml文件
 
-vim networkpolicy.yaml
+如何得到一个networkpolicy.yaml 的模版 
+`kubectl get networkpolicy <name of a networkpolicy>  -n my-app -o yaml --dry-run=client`
 
+或者 通过看 
+https://kubernetes.io/zh-cn/docs/concepts/services-networking/network-policies/#networkpolicy-resource
+
+
+vim networkpolicy.yaml
+注意 :set paste，防止 yaml 文件空格错序。
 ```
-#注意 :set paste，防止 yaml 文件空格错序。
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -114,7 +119,6 @@ spec:
 3、执行yaml文件
 
 kubectl apply -f networkpolicy.yaml
-
 kubectl describe networkpolicy -n my-app
 
 
@@ -159,8 +163,8 @@ spec:
       protocol: TCP
   podSelector: {}
   policyTypes:
-  - Ingress
-  - Egress
+  - Ingress    #策略影响入栈流量
+  - Egress   #策略也影响入栈流量
 ```
 
 
@@ -198,7 +202,7 @@ spec:
       protocol: TCP
   podSelector: {}
   policyTypes:
-  - Ingress
+  - Ingress  #策略影响入栈流量
 ```
 
 
