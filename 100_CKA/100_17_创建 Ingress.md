@@ -10,6 +10,7 @@
 如下创建一个新的nginx ingress 资源：  
 名称：pong  
 namespace：ing-internal  
+
 使用服务端口5678 在路径/hello 上公开服务hello
 
 可以使用以下命令检查服务 hello 的可用性，该命令应返回 hello：
@@ -19,8 +20,7 @@ curl -kL <INTERNAL_IP>/hello
 
 
 [Ingress | Kubernetes](https://kubernetes.io/zh/docs/concepts/services-networking/ingress/ "Ingress | Kubernetes")
-注意 :set paste，防止 yaml 文件空格错序。
-
+https://kubernetes.io/docs/concepts/services-networking/ingress/
 
 # 3 题设
 
@@ -30,20 +30,25 @@ kubectl config use-context k8s
 
 
 2 
+
+https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class
 ingressclassname如果不指定，则会使用集群默认的指定的ingress。
 可以选择创建 或者不创建 ingressClass 
 
 创建ingressClass的yaml文件
+
+
+注意 :set paste，防止 yaml 文件空格错序。
 
 ```
 apiVersion: networking.k8s.io/v1
 kind: IngressClass
 metadata:
  labels:
- app.kubernetes.io/component: controller
+     app.kubernetes.io/component: controller
  name: nginx #考试时没有 ingressClassName，所以需要先手动建一个 ingressClassName，命名就为 nginx。官网页面里是 ingress-example，记得修改下。
  annotations:
- ingressclass.kubernetes.io/is-default-class: "true"
+     ingressclass.kubernetes.io/is-default-class: "true"
 spec:
  controller: k8s.io/ingress-nginx
 ```
@@ -52,6 +57,8 @@ kubectl apply -f ingressclass.yaml
 
 
 3 
+
+https://kubernetes.io/docs/concepts/services-networking/ingress/#the-ingress-resource
 创建ingress的yaml文件
 
 vim ingress.yaml
@@ -108,7 +115,6 @@ kubectl apply -f ingress.yaml
 4 检查 
 
 ```text
-
 kubectl get ingress -n ing-internal  取ip后curl验证
 curl ingress 的 ip 地址/hello
 ```
