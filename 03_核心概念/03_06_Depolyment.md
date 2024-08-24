@@ -115,10 +115,16 @@ spec:
 
 创建：kubectl create -f deploy-nginx.yaml
 删除：kubectl delete -f deploy-nginx.yaml
+# 2 spec 中的解释 
 
+1 selector
+specify that this Deployment should manage Pods with the label app: my-app.
+The selector field in a Kubernetes Deployment specifies how to identify the Pods that the Deployment is responsible for managing. The selector ensures that the Deployment only manages Pods with specific labels.
 
-
-# 2 Depolyment部署 和 ReplucaSet副本集
+2  template
+ The template under the spec section is used to define the Pod configuration. The labels in the template should match the selector to ensure that the Deployment can manage the Pods it creates.
+ 
+# 3 Depolyment部署 和 ReplicaSet副本集
 
 
 Deployment是对ReplicaSet和Pod更高级的抽象。
@@ -148,7 +154,7 @@ kubectl delete deploy nginx-deployment
 ![](image/Pasted%20image%2020230915141737.png)
 
 
-## 2.1 缩放
+## 3.1 缩放
 
 - 手动缩放
 
@@ -175,7 +181,7 @@ kubectl get hpa
 kubectl delete hpa nginx-deployment
 ```
 
-## 2.2 滚动更新
+## 3.2 滚动更新
 
 ```sh
 #查看版本和Pod
@@ -203,7 +209,7 @@ kubectl get rs --watch  // rs 就是 repulicaSet
 根据 name 可以观察 右新旧两个副本集, 就副本集中的 容器数量 在不断变化, 新副本集 中 也不断莲花. 就副本集 中 容器数量最后变为 0 0 0 . 最后新的副本集 完全代替的就得副本集 
 ![](image/Pasted%20image%2020230915143403.png)
 
-## 2.3 版本回滚
+## 3.3 版本回滚
 
 nginx-deployment 为 某个 deployment 的name, 前面要加上 deployment/ 才能表明 这个nginx-deployment 为某个 deployment 
 

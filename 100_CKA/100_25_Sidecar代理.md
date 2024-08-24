@@ -11,8 +11,30 @@
 
 将一个现有的 Pod 集成到 Kubernetes 的内置日志记录体系结构中（例如 kubectl logs）。添加 streaming sidecar 容器是实现此要求的一种好方法。
 
+1 任务1
+Add  a busybox sidecar container to the existing Pod legacy-app. The new sidecar container has to run the following command. 
+
 使用busybox Image来将名为sidecar的sidecar容器添加到现有的Pod 11-factor-app上，新的sidecar容器必须运行以下命令：
 /bin/sh -c tail -n+1 -f /var/log/11-factor-app.log
+
+```
+bin/sh -c tail -n +1 -f /var/log/legacy-app.log
+```
+
+- **`bin/sh`**:
+    - This is likely a mistake and should be `/bin/sh`. It refers to the Bourne shell, which is a command interpreter. The command `/bin/sh -c` is used to execute the following command string.
+- **`-c`**:
+    - This flag tells the shell to read commands from the following string.
+- **`tail -n+1 -f /var/`**:
+    - **`tail`**: This command is used to display the last part of a file.
+    - **`-n +1`**: This tells `tail` to start outputting from the first line of the file.
+    - **`-f`**: This tells `tail` to follow the file as it grows, continually displaying new lines added to the file.
+    - **`/var/`**: This is a directory, not a file. Typically, `tail` should be used with a specific file, not a directory.
+
+
+
+2 任务2 
+Use a volume mount named logs to make the file /var/log/11-factor-app.log available  to the sidecar container 
 
 使用volume挂载/var/log/目录，确保sidecar能访问/var/log/11-factor-app.log文件
 除了添加所需要的 volume mount 以外，请勿更改现有容器的规格。
@@ -20,27 +42,23 @@
 
 # 2 参考文档 
 
-
 中文参考地址：[日志架构 | Kubernetes](https://kubernetes.io/zh-cn/docs/concepts/cluster-administration/logging/)
 https://kubernetes.io/zh-cn/docs/concepts/cluster-administration/logging/
 
 英文参考地址：[日志架构 | Kubernetes](https://kubernetes.io/docs/concepts/cluster-administration/logging/)
 
 
-
-
 # 3 解答
 
 
 1、切换答题环境（考试环境有多个，每道题要在对应的环境中作答）
-
 ```bash
 kubectl config use-context k8s
 ```
 
 2 首先将legacy-app的Pod的yaml导出，大致如下：
-
 kubectl get pod 11-factor-app -o yaml > varlog.yaml
+
 ```bash
 apiVersion: v1
 kind: Pod
@@ -92,16 +110,13 @@ spec:
           i=$((i+1));
           sleep 1;
         done  
-    
-    # 加上下面部分
-    。。。。。。
-      volumeMounts: #在原配置文件，灰色的这段后面添加, 属于 count 这个 container 下的内容  
+      volumeMounts: # 非新加内容, 属于名字为 count的 container.
       - name: default-token-4l6w8 
         mountPath: /var/run/secrets/kubernetes.io/serviceaccount
         readOnly: true
-      - name: varlog #新加内容
-        mountPath: /var/log #新加内容
-    - name: sidecar #新加内容，注意 name 别写错了, 新开一个 container , 名字为 sidebar 
+      - name: varlog
+        mountPath: /var/log
+    - name: sidecar #新加内容，注意 name 别写错了, 新开一个 container , 名字为 sidebar, 不属于 名字为 count的 container. 
       image: busybox #新加内容
       args: [/bin/sh, -c, 'tail -n+1 -f /var/log/11-factor-app.log'] #新加内容，注意 文件名 别写错了。另外是用逗号分隔的，而题目里是空格。
       volumeMounts: #新加内容, , 属于 sidecar 这个container 中的 volueMounts属性 
@@ -109,7 +124,6 @@ spec:
         mountPath: /var/log #新加内容
         dnsPolicy: ClusterFirst
         enableServiceLinks: true
-    。。。。。。
     
     volumes: #在原配置文件，灰色的这段后面添加。 属于整个 pod 的 volumene , 并不属于某个 contianer , volumes 这个词和 contianer这个词 是同级的 
      - name: kube-api-access-kcjc2
@@ -130,7 +144,7 @@ spec:
        apiVersion: v1
        fieldPath: metadata.namespace
        path: namespace
-     - name: varlog #新加内容，注意找好位置。  使得该 Pod 有用一个类型为 emptyDir的卷
+     - name: varlog #新加内容，注意找好位置。  使得该 Pod 有用一个类型为 emptyDir的卷. 这个 pod 被挂载上了一个名字为 volumeType为emptyDir 的 Volume, 这个Volume 是自动被创建的. 这样才可以在上的的 container 中 在  volumeMounts 中 使用这个名为 varlog 的Volume   
        emptyDir: {} #新加内容`
 ```
 
@@ -175,13 +189,13 @@ spec:
 
 3、删除原pod，创建新pod
 
+
 ```bash
 kubectl delete pod 11-factor-app
 kubectl get pod 11-factor-app
 
 kubectl apply -f factor-app.yaml
 ```
-
 
 
 # 4 背景知识
