@@ -44,8 +44,13 @@ kubectl cluster-info dump
 ```
 
 
-# 3 查看 kubectl config file 
+# 3 查看 kube config 
 
+1 查看 现在哪个context 在被使用 
+kubectl config current-context
+
+1 查看所有的 kube config context 
+有星号的代表 正在被使用 
 
 Kubectl config get-contexts
 ```
@@ -60,7 +65,7 @@ CURRENT   NAME                                                 CLUSTER          
           e2x-eks-cluster-eks-dev-ex                           arn:aws:eks:eu-central-1:681290371536:cluster/eks-dev-ex   arn:aws:eks:eu-central-1:681290371536:cluster/eks-dev-ex
 ```
 
-
+2 
 kubectl config view, --cluster string, --context string
 
 kubectl config view
@@ -222,7 +227,10 @@ Install the configuration file for access to your cluster, either
 
 
 某个 single node cluster 中的内容 
-将   name: Default, current-context: Default 改为   name: e20-d2034 ,   current-context: e20-d2034   , 然后将 整个文件存到 `c:\Users\yzh\.kube\config-e20-d2034` 中 
+将   name: Default, current-context: Default 改为   name: e20-d2034 ,   current-context: e20-d2034   , 
+name: e20-d2034-cluster , cluster: e20-d2034-cluster 
+然后将 整个文件存到 `c:\Users\yzh\.kube\config-e20-d2034` 中 
+
 
 ```
 apiVersion: v1
@@ -230,13 +238,13 @@ clusters:
 - cluster:
     certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURBRENDQWVpZ0F3SUJBZ0lVZFNOMmtlZ0JSN2pON056c3ZFTlh5TE1VcXBrd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0dERVdNQlFHQTFVRUF4TU5hM1ZpWlhKdVpYUmxjeTFqWVRBZUZ3MHlOREEzTWpJeE9USTNNREJhRncwegpOREEzTWpBeE9USTNNREJhTUJneEZqQVVCZ05WQkFNVERXdDFZbVZ5Ym1WMFpYTXRZMkV3Z2dFaU1BMEdDU3FHClNJYjNEUUVCQVFVQUE0SUJEd0F3Z2dFS0FvSUJBUURjSFZ1RzhSeVp1WlJhM255d1NSWlhubVIxaEIyTER2U0cKUkNybkwwSWY4bFd6elhLQnR3M1pmQ2lTbUlmVGtVdEwvajZKYWxDdlZhYXhJaXd0ZHYxR3ZoUTdjd3gzU2VDbwpjVjNhWWQ3ckNva2FEQk9FWDgyd3JjTVRvTmZPdEZGcWVOVU9HQTdEbHlhNkczSUNvWDZ6cjF5bEdqdmlDcWZoCkVHUkUweE1JNUdGQU9rczJqUWVDclB2aHBuM0VvQUtmQmYxM3R4REdsYlVMR0ZsV0hFS2ZPS2x2NXE1M1Rsbk4KL3dlc1R5L09qamtwdXk0c1NpN1ozM3FjL25GTzBOcVRTZnVrbU9UVExveFhoUzdibGhHOHBpblpIaWhPeXk2Qwo2b0ZVSGNtd0xyT3ZmSDJXNjc3bHl0MEhRYUFCdU1UMWFEblRxTktnRnZnZCs1ekJuSSs3QWdNQkFBR2pRakJBCk1BNEdBMVVkRHdFQi93UUVBd0lCQmpBUEJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXQkJUUG9lT0oKeXE0QWl3Z0ZIQlRuczhXMjV2Z0d1REFOQmdrcWhraUc5dzBCQVFzRkFBT0NBUUVBQXIvb0hYTUxNSGx0Ulp0UQpqeXNqVGRiSmdBZlVwUnpoODZOR1hOMmJJdkFxUmNJbmZCd3l3WUY3NFNoZ0JzWGdhYXp4WWF0ZEdiZDlQb1NOCllqaHR2VnZuczMrVEQyOENhaEU2SGRNeVNycTN3SnlMaHR1SE1xZ0JpdnlIQmNVMWlwMG42RjhUQXE0dTF6eTgKTmtJS1JFbEVFSEpmaUI4SVJHbTV1cXB0Y3lOMURiWFptZ3BmdVhSMW42cHFOVHU2VCsrYnRKV0pIV0JqbzdENApJL0hUdHdXUjJtWjBSTlkweDBUaERwOHVhclpHWVR6dUNTeU5mdmw1RFBlQ0VtcWZ0aERpdlFEMkw0MDVOaWF6CkhiSWZhOFRvMlBoRllUQlQwTUZENUhjRFNad2UvTVEzQXhybk1nRTdnUWsvUXBkbmR3bHFYaTBZcXZkdG9neEYKVkMySnBnPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
     server: https://172.18.80.55:6443
-  name: local
+  name: local   # 要修改
 contexts:
 - context:
-    cluster: local
+    cluster: local # 要修改
     user: user
-  name: Default
-current-context: Default
+  name: Default # 要修改
+current-context: Default # 要修改
 kind: Config
 preferences: {}
 users:
@@ -254,6 +262,19 @@ users:
 
 
 You are now connected as cluster admin to Kubernetes. Note that in this role, you may not only monitor, but also reconfigure and inherently misconfigure / destroy resources in the Kubernetes cluster. On the other hand, this is a Dedicated Single Node Cluster, hence the only system that may be harmed is this dedicated cluster and the IVU.plan environment within.
+
+> 出现了重大问题 
+在 windwos server 和 WSL 中都出现了这个问题
+我将 e2x-d3042f 和 e2x-d3204a 都 生成了 对应的 config file , 填入了Kubeconfig 中
+用 kubectl config use-context切换两种 config 都可以成功 
+但是只有在Kubeconfig 这个环境变量中 比较靠前的 confige file 能够 在 用 kubectl get ns -A 的时候不报错。 
+
+另外一个在运行 kubectl get ns -A 的时候报错为 
+```
+error: You must be logged in to the server (Unauthorized)
+```
+
+我怀疑原因是  e2x-d3042f 和 e2x-d3204a config file 有类似的一样的参数 
 
 
 ### 4.2.2 wsl 中 
@@ -313,7 +334,7 @@ E0723 17:19:41.009074    5928 memcache.go:265] couldn't get current server API g
 Unable to connect to the server: dial tcp 127.0.0.1:6443: connectex: Es konnte keine Verbindung hergestellt werden, da der Zielcomputer die Verbindung verweigerte.
 ```
 
-所以 此时 需要时 在 `c:\Users\yzh\.kube` 路径下   执行 kubectl get pods -A  --kubeconfig=config-e20-d2034  不会报错了 
+==所以 此时 需要时 在 `c:\Users\yzh\.kube` 路径下   执行 kubectl get pods -A  --kubeconfig=config-e20-d2034  不会报错了== 
 
 
 
