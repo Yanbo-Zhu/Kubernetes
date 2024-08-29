@@ -260,7 +260,7 @@ You are now connected as cluster admin to Kubernetes. Note that in this role, yo
 
 
 在 ~/.bashrc add
-
+将 新的 kubeconfig 文件的路径  添加到 KUBECONFIG 最后 ， 然后 执行 source ~/.bashrc 
 ```
 export KUBECONFIG="${KUBECONFIG}:config-demo:config-demo-2"
 
@@ -268,7 +268,7 @@ export KUBECONFIG="${KUBECONFIG}:${HOME}/.kube/config"
 
 export KUBECONFIG="${KUBECONFIG}:${HOME}/.kube/config:/mnt/c/Users/yzh/.kube/config-e20-d3042:/mnt/c/Users/yzh/.kube/config-e20-d3042b:/mnt/c/Users/yzh/.kube/config-e20-eks-cluster-main:/mnt/c/Users/yzh/.kube/config-e2x-eks-cluster-dev:/mnt/c/Users/yzh/.kube/config-e2x-eks-cluster-eks-dev-ex"
 
-将 新的 kubeconfig 文件的路径  添加到 KUBECONFIG 最后 ， 然后 执行 source ~/.bashrc 
+
 ```
 
 
@@ -280,7 +280,7 @@ export KUBECONFIG="${KUBECONFIG}:${HOME}/.kube/config:/mnt/c/Users/yzh/.kube/con
 
 ### 4.2.4 验收
 1 
-在非 `c:\Users\yzh\.kube` 路径下 ,  随便哪个路径下
+不一定在 `c:\Users\yzh\.kube` 路径下 ,  随便哪个路径下
 
 执行  kubectl config use-context e20-d2034, 得到 output 为 Switched to context "e20-d2034"
 
