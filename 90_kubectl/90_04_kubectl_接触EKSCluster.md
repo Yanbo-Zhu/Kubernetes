@@ -66,7 +66,7 @@ CURRENT   NAME                                                 CLUSTER          
 ```
 
 2 
-kubectl config view, --cluster string, --context string
+kubectl config view, --cluster string, --context string, --minify(只展示 current context 的西街)
 
 kubectl config view
 ```
