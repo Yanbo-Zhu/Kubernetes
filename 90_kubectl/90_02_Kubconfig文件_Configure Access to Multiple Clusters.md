@@ -329,17 +329,24 @@ $Env:KUBECONFIG
 
 ## 6.2 Linux 
 
-在 ~/.bashrc add
+在 ~ 中 
+ln -sf "/mnt/c/users/yzh/.kube" ~/.kube
 
+在 ~/.bashrc add
+```
+export KUBECONFIG="${HOME}/.kube/config:${HOME}/.kube/config-e20-eks-cluster-main:${HOME}/.kube/config-e2x-eks-cluster-dev:${HOME}/.kube/config-e2x-eks-cluster-eks-dev-ex:${HOME}/.kube/config-e2x-d3207a"
+```
+
+source ~/.bashrc
+
+下面的不执行 
 ```
 export KUBECONFIG="${KUBECONFIG}:config-demo:config-demo-2"
 
 export KUBECONFIG="${KUBECONFIG}:${HOME}/.kube/config"
-
-export KUBECONFIG="${KUBECONFIG}:${HOME}/.kube/config:/mnt/c/Users/yzh/.kube/config-e20-d3042:/mnt/c/Users/yzh/.kube/config-e20-d3042b:/mnt/c/Users/yzh/.kube/config-e20-eks-cluster-main:/mnt/c/Users/yzh/.kube/config-e2x-eks-cluster-dev:/mnt/c/Users/yzh/.kube/config-e2x-eks-cluster-eks-dev-ex"
 ```
 
-source ~/.bashrc
+
 ## 6.3 查看多个kubeconig文件合并的效果 
 
 kubectl config view
