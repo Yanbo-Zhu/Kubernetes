@@ -222,7 +222,8 @@ To control the cluster with kubectl remotely from another host, perform the foll
 #### 4.2.1.1 windows 中
 Install the configuration file for access to your cluster, either
 1. Copy the file `/root/.kube/config `from the Kubernetes Host in aws umgebung into the directory created in the previous step, `c:\Users\yzh\.kube\config-e20-d2034`.  or 
-2. On a single-node AWS system download [`http://e20-<environment>-a01.ivu-cloud.local/kubeconfig.txt`] (`http://e20-%3cenvironment%3e-a01.ivu-cloud.local/kubeconfig.txt` ), rename the resulting file to config and copy it into `c:\Users\yzh\.kube\config-e20-d2034`,  the directory created in the previous step, or
+2. On a single-node AWS system download [`http://e20-<environment>-a01.ivu-cloud.local/kubeconfig.txt`] ( 就是直接在 阅览器中输入 `http://e20-%3cenvironment%3e-a01.ivu-cloud.local/kubeconfig.txt` ), rename the resulting file to config and copy it into `c:\Users\yzh\.kube\config-e20-d2034`,  the directory created in the previous step
+    1. Das ist Standard bei unseren Singlenode Clustern, dass die kubeconfig über `<appserver url>/kubeconfig.txt `exposed wird.
 
 
 
