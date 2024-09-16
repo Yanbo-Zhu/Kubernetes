@@ -67,6 +67,7 @@ https://pre-commit.com/#install
 If you want to automatically generate README.md files with a pre-commit hook, make sure you install the pre-commit binary, and add a .pre-commit-config.yaml file to your project. Then run:
 
 Future changes to your chart's requirements.yaml, values.yaml, Chart.yaml, or README.md.gotmpl files will cause an update to documentation when you commit.
+
 ## 2.1 安装 
 
 pre-commit install
@@ -74,6 +75,36 @@ pre-commit install-hooks
 
 
 ## 2.2 .pre-commit-config.yaml file 的写法
+
+我用的是 
+
+```
+repos:
+  - repo: local
+    hooks:
+      - id: helm-docs-container
+        args: []
+        description: Uses the container image of 'helm-docs' to create documentation from the Helm chart's 'values.yaml' file, and inserts the result into a corresponding 'README.md' file.
+        entry: jnorwood/helm-docs:latest
+        files: (README\.md\.gotmpl|(Chart|requirements|values)\.yaml)$
+        language: docker_image
+        name: Helm Docs Container
+        require_serial: true
+
+#repos:
+#  - repo: https://github.com/norwoodj/helm-docs
+#    rev: v1.14.2
+#    hooks:
+#      - id: helm-docs-container
+#        entry: jnorwood/helm-docs:latest
+#        args:
+#          # Make the tool search for charts only under the current directory
+#          - --chart-search-root=.
+#          # Repeating the flag adds this to the list, now [./_templates.gotmpl, README.md.gotmpl]
+#          # A base filename makes it relative to each chart directory found
+#          - --template-files=README.md.gotmpl
+```
+
 
 Example 
 
@@ -95,7 +126,7 @@ repos:
           - --template-files=README.md.gotmpl
 ```
 
-```
+```yaml
 repos:
   - repo: https://github.com/norwoodj/helm-docs
     rev: v1.14.2
@@ -113,6 +144,7 @@ repos:
           # A base filename makes it relative to each chart directory found
           - --template-files=README.md.gotmpl
 ```
+
 
 
 ### 2.2.1 指定 helm-docs 的源位置
