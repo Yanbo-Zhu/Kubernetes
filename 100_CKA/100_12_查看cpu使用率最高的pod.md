@@ -10,6 +10,7 @@
 
 通过pod label name=cpu-user，找到运行时占用大量CPU 的pod，并将占用CPU最高的pod名称写入到文件/opt/KUTR000401/KUTR00401.txt（已存在）
 
+考试时可能会有变化，比如CPU 换成MEMORY，要学会举一反三。如果考试时紧张怕记错了，可以在终端快速查询。
 
 # 2 参考文档
 
@@ -30,16 +31,14 @@ kubectl config use-context k8s
 
 ```bash
 kubectl get pods -A --show-labels
+
 kubectl top pod -l name=cpu-user --sort-by=cpu -A
-
-
 NAMESPACE     NAME                       CPU(cores)   MEMORY(bytes)   
 kube-system   coredns-54d67798b7-hl8xc   7m           8Mi   
 kube-system   coredns-54d67798b7-m4m2q   6m           8Mi
 
 
 ```
-
 
 
 > 3、将查到Pod名称输出到指定文件
