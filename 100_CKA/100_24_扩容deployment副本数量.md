@@ -22,14 +22,18 @@ kubectl scale deployment -h
 1、切换答题环境（考试环境有多个，每道题要在对应的环境中作答）
 kubectl config use-context k8s
 
+2 查看 
+kubectl get deployments presentation -o wide
+kubectl get pod -l app=presentation
 
 2、使用命令进行扩容
-kubectl scale --replicas=6 deployment/loadbalancer
-
+kubectl scale  deployment loadbalancer --replicas=6
 
 3、验证方法
-kubectl get deploy loadbalancer
+kubectl get deploy loadbalancer -o wide
 kubectl get deployments loadbalancer -o wide
+kubectl get pod -l app=presentation
+
 检查pod的个数。
 
 
