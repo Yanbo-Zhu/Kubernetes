@@ -15,10 +15,10 @@
 Add  a busybox sidecar container to the existing Pod legacy-app. The new sidecar container has to run the following command. 
 
 使用busybox Image来将名为sidecar的sidecar容器添加到现有的Pod 11-factor-app上，新的sidecar容器必须运行以下命令：
-/bin/sh -c tail -n+1 -f /var/log/11-factor-app.log
+`/bin/sh -c 'tail -n+1 -f /var/log/11-factor-app.log'`
 
 ```
-bin/sh -c tail -n +1 -f /var/log/legacy-app.log
+bin/sh -c 'tail -n+1 -f /var/log/legacy-app.log'
 ```
 
 - **`bin/sh`**:
@@ -27,7 +27,7 @@ bin/sh -c tail -n +1 -f /var/log/legacy-app.log
     - This flag tells the shell to read commands from the following string.
 - **`tail -n+1 -f /var/`**:
     - **`tail`**: This command is used to display the last part of a file.
-    - **`-n +1`**: This tells `tail` to start outputting from the first line of the file.
+    - **`-n +1`**: This tells `tail` to start outputting from the first line of the file. 因为用的是 tail, 所以输出的是 最底下的第一行, 即为最后一行 
     - **`-f`**: This tells `tail` to follow the file as it grows, continually displaying new lines added to the file.
     - **`/var/`**: This is a directory, not a file. Typically, `tail` should be used with a specific file, not a directory.
 
@@ -43,8 +43,7 @@ Use a volume mount named logs to make the file /var/log/11-factor-app.log availa
 # 2 参考文档 
 
 中文参考地址：[日志架构 | Kubernetes](https://kubernetes.io/zh-cn/docs/concepts/cluster-administration/logging/)
-https://kubernetes.io/zh-cn/docs/concepts/cluster-administration/logging/
-
+https://kubernetes.io/docs/concepts/cluster-administration/logging/#sidecar-container-with-logging-agent
 英文参考地址：[日志架构 | Kubernetes](https://kubernetes.io/docs/concepts/cluster-administration/logging/)
 
 
@@ -82,11 +81,214 @@ spec:
 ```
 
 
-2、编辑yaml文件
+```
+
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","kind":"Pod","metadata":{"annotations":{},"name":"11-factor-app","namespace":"default"},"spec":{"containers":[{"args":["/bin/sh","-c","i=0; while true; do\n  echo \"$(date) INFO $i\" \u003e\u003e /var/log/11-factor-app.log;\n  i=$((i+1));\n  sleep 1;\ndone \n"],"image":"busybox:1.28","name":"11-factor-app"}],"nodeSelector":{"name":"node01"}}}
+  creationTimestamp: "2024-06-14T14:19:07Z"
+  name: 11-factor-app
+  namespace: default
+  resourceVersion: "21768"
+  uid: 61979bb6-b3bf-44ba-86bc-a3473615babd
+spec:
+  containers:
+  - args:
+    - /bin/sh
+    - -c
+    - "i=0; while true; do\n  echo \"$(date) INFO $i\" >> /var/log/11-factor-app.log;\n
+      \ i=$((i+1));\n  sleep 1;\ndone \n"
+    image: busybox:1.28
+    imagePullPolicy: IfNotPresent
+    name: 11-factor-app
+    resources: {}
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: kube-api-access-474vz
+      readOnly: true
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  nodeName: node01
+  nodeSelector:
+    name: node01
+  preemptionPolicy: PreemptLowerPriority
+  priority: 0
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  securityContext: {}
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  volumes:
+  - name: kube-api-access-474vz
+    projected:
+      defaultMode: 420
+      sources:
+      - serviceAccountToken:
+          expirationSeconds: 3607
+          path: token
+      - configMap:
+          items:
+          - key: ca.crt
+            path: ca.crt
+          name: kube-root-ca.crt
+      - downwardAPI:
+          items:
+          - fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+            path: namespace
+status:
+  conditions:
+  - lastProbeTime: null
+    lastTransitionTime: "2024-09-21T13:58:57Z"
+    status: "True"
+    type: PodReadyToStartContainers
+  - lastProbeTime: null
+    lastTransitionTime: "2024-06-14T14:19:07Z"
+    status: "True"
+    type: Initialized
+  - lastProbeTime: null
+    lastTransitionTime: "2024-09-21T13:58:57Z"
+    status: "True"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: "2024-09-21T13:58:57Z"
+    status: "True"
+    type: ContainersReady
+  - lastProbeTime: null
+    lastTransitionTime: "2024-06-14T14:19:07Z"
+    status: "True"
+    type: PodScheduled
+  containerStatuses:
+  - containerID: containerd://a5b63f24b13e5558459486bd5b5b1ba32049864de799b3456a5c94a48894c83a
+    image: docker.io/library/busybox:1.28
+    imageID: sha256:8c811b4aec35f259572d0f79207bc0678df4c736eeec50bc9fec37ed936a472a
+    lastState:
+      terminated:
+        containerID: containerd://aace21575819916cdfa3d29c15658c55e922c5167d87d88d2a91cc5b90dbb6df
+        exitCode: 255
+        finishedAt: "2024-09-21T15:58:26Z"
+        reason: Unknown
+        startedAt: "2024-06-26T01:14:00Z"
+    name: 11-factor-app
+    ready: true
+    restartCount: 3
+    started: true
+    state:
+      running:
+        startedAt: "2024-09-21T13:58:56Z"
+  hostIP: 192.168.10.61
+  hostIPs:
+  - ip: 192.168.10.61
+  phase: Running
+  podIP: 10.244.2.64
+  podIPs:
+  - ip: 10.244.2.64
+  qosClass: BestEffort
+  startTime: "2024-06-14T14:19:07Z"
+
+```
 
 ```bash
 # 备份 yaml 文件，防止改错了，回退。
 cp varlog.yaml varlog-bak.yaml
+```
+
+2 删除原来的pod
+k delete pod 11-factor-app
+
+k get pod 11-factor-app 
+candidate@node01:~/yaml$ k get pod 11-factor-app
+Error from server (NotFound): pods "11-factor-app" not found
+
+3 
+在官网上查找sidecar 模版 
+https://kubernetes.io/docs/concepts/cluster-administration/logging/#sidecar-container-with-logging-agent
+根据官网模版，我们需要先声明一个EmptyDir 储存类型的volume，然后将volume 分别挂载到原有容器和新添加sidecar 容器的目录中
+
+```bash
+apiVersion: v1
+kind: Pod
+metadata:
+  name: counter
+spec:
+  containers:
+  - name: count
+    image: busybox:1.28
+    args:
+    - /bin/sh
+    - -c
+    - >
+      i=0;
+      while true;
+      do
+        echo "$i: $(date)" >> /var/log/1.log;
+        echo "$(date) INFO $i" >> /var/log/2.log;
+        i=$((i+1));
+        sleep 1;
+      done      
+    volumeMounts:
+    - name: varlog
+      mountPath: /var/log
+  - name: count-log-1
+    image: busybox:1.28
+    args: [/bin/sh, -c, 'tail -n+1 -F /var/log/1.log']
+    volumeMounts:
+    - name: varlog
+      mountPath: /var/log
+  - name: count-log-2
+    image: busybox:1.28
+    args: [/bin/sh, -c, 'tail -n+1 -F /var/log/2.log']
+    volumeMounts:
+    - name: varlog
+      mountPath: /var/log
+  volumes:
+  - name: varlog
+    emptyDir: {}
+
+```
+
+4 
+编辑yaml文件
+
+```
+#下面两行添加到原有应用的volumeMounts:下面
+vim 11-factor-app.yaml
+
+#下面两行添加到原有应用的volumeMounts:下面
+- name: varlog
+  mountPath: /var/log
+
+#下面为新添加sidecar，紧跟着上面内容就行
+- name: sidecar
+  image: busybox:1.28
+  args: [/bin/sh -c 'tail -n+1 -f /var/log/11-factor-app.log']
+  volumeMounts:
+  - name: varlog
+    mountPath: /var/log
+#一下内容添加在原POD 最下面的volumes:下面
+- name: varlog
+  emptyDir: {}
+```
+
+![](image/Pasted%20image%2020240921201840.png)
+
+```
 
 # 修改 varlog.yaml 文件
 vim varlog.yaml
@@ -114,7 +316,7 @@ spec:
       - name: default-token-4l6w8 
         mountPath: /var/run/secrets/kubernetes.io/serviceaccount
         readOnly: true
-      - name: varlog
+      - name: varlog  #新加内容 给原有的 container 加上这个volume, 使得这个contianer 的log 可以被输出 
         mountPath: /var/log
     - name: sidecar #新加内容，注意 name 别写错了, 新开一个 container , 名字为 sidebar, 不属于 名字为 count的 container. 
       image: busybox #新加内容
@@ -186,15 +388,154 @@ spec:
     emptyDir: {}
 ```
 
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","kind":"Pod","metadata":{"annotations":{},"name":"11-factor-app","namespace":"default"},"spec":{"containers":[{"args":["/bin/sh","-c","i=0; while true; do\n  echo \"$(date) INFO $i\" \u003e\u003e /var/log/11-factor-app.log;\n  i=$((i+1));\n  sleep 1;\ndone \n"],"image":"busybox:1.28","name":"11-factor-app"}],"nodeSelector":{"name":"node01"}}}
+  creationTimestamp: "2024-06-14T14:19:07Z"
+  name: 11-factor-app
+  namespace: default
+  resourceVersion: "21768"
+  uid: 61979bb6-b3bf-44ba-86bc-a3473615babd
+spec:
+  containers:
+  - args:
+    - /bin/sh
+    - -c
+    - "i=0; while true; do\n  echo \"$(date) INFO $i\" >> /var/log/11-factor-app.log;\n
+      \ i=$((i+1));\n  sleep 1;\ndone \n"
+    image: busybox:1.28
+    imagePullPolicy: IfNotPresent
+    name: 11-factor-app
+    resources: {}
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: kube-api-access-474vz
+      readOnly: true
+    - name: varlog # 这里 
+      mountPath: /var/log
+  - name: sidecar  # 这里
+    image: busybox:1.28
+    args: [bin/s, -c, 'tail -n+1 -f /var/log/11-factor-app.log']
+    volumeMounts:
+    - name: vorlog
+      mountPath: /var/log
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  nodeName: node01
+  nodeSelector:
+    name: node01
+  preemptionPolicy: PreemptLowerPriority
+  priority: 0
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  securityContext: {}
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  volumes:
+  - name: kube-api-access-474vz
+    projected:
+      defaultMode: 420
+      sources:
+      - serviceAccountToken:
+          expirationSeconds: 3607
+          path: token
+      - configMap:
+          items:
+          - key: ca.crt
+            path: ca.crt
+          name: kube-root-ca.crt
+      - downwardAPI:
+          items:
+          - fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+            path: namespace
+  - name: varlog  #这里
+    emptyDir: {}
+status:
+  conditions:
+  - lastProbeTime: null
+    lastTransitionTime: "2024-09-21T13:58:57Z"
+    status: "True"
+    type: PodReadyToStartContainers
+  - lastProbeTime: null
+    lastTransitionTime: "2024-06-14T14:19:07Z"
+    status: "True"
+    type: Initialized
+  - lastProbeTime: null
+    lastTransitionTime: "2024-09-21T13:58:57Z"
+    status: "True"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: "2024-09-21T13:58:57Z"
+    status: "True"
+    type: ContainersReady
+  - lastProbeTime: null
+    lastTransitionTime: "2024-06-14T14:19:07Z"
+    status: "True"
+    type: PodScheduled
+  containerStatuses:
+  - containerID: containerd://a5b63f24b13e5558459486bd5b5b1ba32049864de799b3456a5c94a48894c83a
+    image: docker.io/library/busybox:1.28
+    imageID: sha256:8c811b4aec35f259572d0f79207bc0678df4c736eeec50bc9fec37ed936a472a
+    lastState:
+      terminated:
+        containerID: containerd://aace21575819916cdfa3d29c15658c55e922c5167d87d88d2a91cc5b90dbb6df
+        exitCode: 255
+        finishedAt: "2024-09-21T15:58:26Z"
+        reason: Unknown
+        startedAt: "2024-06-26T01:14:00Z"
+    name: 11-factor-app
+    ready: true
+    restartCount: 3
+    started: true
+    state:
+      running:
+        startedAt: "2024-09-21T13:58:56Z"
+  hostIP: 192.168.10.61
+  hostIPs:
+  - ip: 192.168.10.61
+  phase: Running
+  podIP: 10.244.2.64
+  podIPs:
+  - ip: 10.244.2.64
+  qosClass: BestEffort
+  startTime: "2024-06-14T14:19:07Z"
 
-3、删除原pod，创建新pod
+```
 
+3、创建新pod
 
 ```bash
-kubectl delete pod 11-factor-app
-kubectl get pod 11-factor-app
+kubectl apply -f 11-factor-app.yaml #应用yaml 文件
 
-kubectl apply -f factor-app.yaml
+kubectl get pod 11-factor-app #查看Pod 运行状况
+kubectl logs 11-factor-app sidecar #日志打印输出
+candidate@node01:~/yaml$ kubectl logs 11-factor-app sidecar
+Sat Sep 21 19:18:55 UTC 2024 INFO 0
+Sat Sep 21 19:18:56 UTC 2024 INFO 1
+Sat Sep 21 19:18:57 UTC 2024 INFO 2
+Sat Sep 21 19:18:58 UTC 2024 INFO 3
+Sat Sep 21 19:18:59 UTC 2024 INFO 4
+Sat Sep 21 19:19:00 UTC 2024 INFO 5
+Sat Sep 21 19:19:01 UTC 2024 INFO 6
+
 ```
 
 
