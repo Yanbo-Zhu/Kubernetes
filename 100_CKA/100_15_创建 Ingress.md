@@ -8,7 +8,7 @@
 设置[配置环境](https://so.csdn.net/so/search?q=%E9%85%8D%E7%BD%AE%E7%8E%AF%E5%A2%83&spm=1001.2101.3001.7020)kubectl config use-context k8s
 
 如下创建一个新的nginx ingress 资源：  
-名称：pong  
+名称：ping  
 namespace：ing-internal  
 
 使用服务端口5678 在路径/hello 上公开服务hello
@@ -29,13 +29,13 @@ https://kubernetes.io/docs/concepts/services-networking/ingress/
 kubectl config use-context k8s
 
 
-2 
+2  创建ingressClass 和 Ingress 
 
 https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class
 ingressclassname如果不指定，则会使用集群默认的指定的ingress。
 可以选择创建 或者不创建 ingressClass 
 
-创建ingressClass的yaml文件
+2.1 ingressClass
 
 
 注意 :set paste，防止 yaml 文件空格错序。
@@ -56,8 +56,7 @@ spec:
 kubectl apply -f ingressclass.yaml
 
 
-3 
-
+2.2 Ingress 
 https://kubernetes.io/docs/concepts/services-networking/ingress/#the-ingress-resource
 创建ingress的yaml文件
 
@@ -82,6 +81,7 @@ spec:
             port:
               number: 5678
 ```
+
 
 ```
 apiVersion: networking.k8s.io/v1
@@ -110,13 +110,60 @@ spec:
 执行ingress的yaml文件
 kubectl apply -f ingress.yaml 
 
+2.3 或者 ingress 和 ingressClass 一起创建 
 
+一定要加 namespace 选项在里面 ingress 里面 
+ingressClass 中不需要加namespace 
+
+```
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+  name: nginx-example
+  annotations:
+    ingressclass.kubernetes.io/is-default-class: "true"
+spec:
+  controller: k8s.io/ingress-nginx
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ping
+  namespace: ing-internal
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx-example
+  rules:
+  - http:
+      paths:
+      - path: /hello
+        pathType: Prefix
+        backend:
+          service:
+            name: hello
+            port:
+              number: 5678
+
+```
 
 4 检查 
 
 ```text
 kubectl get ingress -n ing-internal  取ip后curl验证
+candidate@node01:~/yaml$ kubectl get ingress -n ing-internal
+NAME   CLASS           HOSTS   ADDRESS       PORTS   AGE
+ping   nginx-example   *       10.13.127.0   80      96s
+
+
 curl ingress 的 ip 地址/hello
+curl -kL 10.13.127.0/hello
+
+candidate@node01:~/yaml$ curl -kL 10.13.127.0/hello
+Hello World ^ _ ^
+
 ```
 
 
