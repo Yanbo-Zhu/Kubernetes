@@ -6,9 +6,9 @@
 设置配置环境kubectl config use-context k8s
 
 按如下要求创建并调度一个pod：
-- 名称：nginx-kusc00401
+- name：nginx-kusc00401
 - image: nginx
-- Node selector: disk=ssd
+- node selector: disk=ssd
 
 
 

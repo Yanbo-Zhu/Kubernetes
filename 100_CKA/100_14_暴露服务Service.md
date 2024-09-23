@@ -53,6 +53,8 @@ kubectl edit deployment front-end
        protocol: TCP
 ```
 
+这不做玩了一以后 立即生效 不用执行 kubectl apply 什么的 
+
 
 4  产生一个新的service 
 
@@ -64,6 +66,11 @@ kubectl expose deployment front-end --type=NodePort --port=80 --target-port=80 -
 
 注意考试中需要创建的是 NodePort，还是 ClusterIP。如果是 ClusterIP，则应为--type=ClusterIP
 --port 是 service 的端口号，--target-port 是 deployment 里 pod 的容器的端口号。
+
+nodeport: 
+port:  The port that the service should serve on
+targetport: Name or number for the port on the container that the service should
+direct traffic to.
 
 
 ---方法2: 编写service的yaml文件
@@ -114,7 +121,6 @@ kubectl get pod,svc -o wide
 curl NodeIP:port
     curl 10.7.30.108:80  
     curl 10.7.30.108:32600 是不行的 , 不通 
-
 curl HostName:port
     curl node01:32600
 curl SvcIP
