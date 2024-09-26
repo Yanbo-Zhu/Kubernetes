@@ -1,0 +1,364 @@
+
+The `eksctl` CLI is used to work with EKS clusters. It automates many individual tasks. See [Installation](https://eksctl.io/installation)
+
+in the `eksctl` documentation for instructions on installing `eksctl`.
+
+When using `eksctl` the IAM security principal that you're using must have permissions to work with Amazon EKS IAM roles, service linked roles, AWS CloudFormation, a VPC, and related resources. For more information, see [Actions, resources, and condition keys for Amazon Elastic Container Service for Kubernetes](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonelastickubernetesservice.html) and [Using service-linked roles](https://docs.aws.amazon.com/IAM/latest/UserGuide/using-service-linked-roles.html) in the IAM User Guide. You must complete all steps in this guide as the same user. To check the current user, run the following command:
+
+https://eksctl.io/installation/
+
+https://eksctl.io/getting-started/
+# 1 安装
+
+## 1.1 Windows 
+
+下载 AMD64/x86_64版本 
+
+
+BNB2336 笔记本上 
+`c:\01_SmallApp\eksctl_Windows_amd64\eksctl.exe`
+
+
+## 1.2 wsl 上
+
+```
+# for ARM systems, set ARCH to: `arm64`, `armv6` or `armv7`
+ARCH=amd64
+PLATFORM=$(uname -s)_$ARCH
+
+curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$PLATFORM.tar.gz"
+
+# (Optional) Verify checksum
+curl -sL "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_checksums.txt" | grep $PLATFORM | sha256sum --check
+
+tar -xzf eksctl_$PLATFORM.tar.gz -C /tmp && rm eksctl_$PLATFORM.tar.gz
+
+sudo mv /tmp/eksctl /usr/local/bin
+```
+
+最后 eksctl 的执行文件 放在了 /usr/local/bin 中 
+# 2 Shell Completion[¶](https://eksctl.io/installation/#shell-completion "Permanent link")
+
+## 2.1 Bash[¶](https://eksctl.io/installation/#bash "Permanent link")
+
+To enable bash completion, run the following, or put it in `~/.bashrc` or `~/.profile`:
+
+```
+source <(eksctl completion bash)
+```
+
+## 2.2 Zsh[¶](https://eksctl.io/installation/#zsh "Permanent link")
+
+For zsh completion, please run:
+
+```
+mkdir -p ~/.zsh/completion/
+eksctl completion zsh > ~/.zsh/completion/_eksctl
+```
+
+and put the following in `~/.zshrc`:
+
+```
+fpath=($fpath ~/.zsh/completion)
+```
+
+Note if you're not running a distribution like oh-my-zsh you may first have to enable autocompletion (and put in `~/.zshrc` to make it persistent):
+
+```
+autoload -U compinit
+compinit
+```
+
+## 2.3 Fish[¶](https://eksctl.io/installation/#fish "Permanent link")
+
+
+vim ~/.config/fish/config.fish
+
+添加入 
+```
+#eksctl
+eksctl completion fish | source
+```
+
+then
+source ~/.config/fish/config.fish
+
+---
+下面的没有用 不用做
+The below commands can be used for fish auto completion:
+
+```
+mkdir -p ~/.config/fish/completions
+eksctl completion fish > ~/.config/fish/completions/eksctl.fish
+```
+
+## 2.4 Powershell[¶](https://eksctl.io/installation/#powershell "Permanent link")
+
+在 `c:\Users\yzh\Documents\PowerShell\Microsoft.PowerShell_profile.ps1` 中, 植入
+
+```
+#-------------------  Set eksctl BEGIN  -------------------------------
+eksctl completion powershell | Out-String | Invoke-Expression
+
+#-------------------  Set eksctl end -------------------------------
+```
+
+---
+下面的根本不需要去做 没有用 
+
+The below command can be referred for setting it up. Please note that the path might be different depending on your system settings.
+
+```
+eksctl completion powershell > c:\Users\yzh\Documents\PowerShell\eksctl
+```
+
+上面只是 让你看看 eksctl completion powershell 会产生什么呢内容, 如下
+
+```
+# powershell completion for eksctl                               -*- shell-script -*-
+
+function __eksctl_debug {
+    if ($env:BASH_COMP_DEBUG_FILE) {
+        "$args" | Out-File -Append -FilePath "$env:BASH_COMP_DEBUG_FILE"
+    }
+}
+
+filter __eksctl_escapeStringWithSpecialChars {
+    $_ -replace '\s|#|@|\$|;|,|''|\{|\}|\(|\)|"|`|\||<|>|&','`$&'
+}
+
+[scriptblock]${__eksctlCompleterBlock} = {
+    param(
+            $WordToComplete,
+            $CommandAst,
+            $CursorPosition
+        )
+
+    # Get the current command line and convert into a string
+    $Command = $CommandAst.CommandElements
+    $Command = "$Command"
+
+    __eksctl_debug ""
+    __eksctl_debug "========= starting completion logic =========="
+    __eksctl_debug "WordToComplete: $WordToComplete Command: $Command CursorPosition: $CursorPosition"
+
+    # The user could have moved the cursor backwards on the command-line.
+    # We need to trigger completion from the $CursorPosition location, so we need
+    # to truncate the command-line ($Command) up to the $CursorPosition location.
+    # Make sure the $Command is longer then the $CursorPosition before we truncate.
+    # This happens because the $Command does not include the last space.
+    if ($Command.Length -gt $CursorPosition) {
+        $Command=$Command.Substring(0,$CursorPosition)
+    }
+    __eksctl_debug "Truncated command: $Command"
+
+    $ShellCompDirectiveError=1
+    $ShellCompDirectiveNoSpace=2
+    $ShellCompDirectiveNoFileComp=4
+    $ShellCompDirectiveFilterFileExt=8
+    $ShellCompDirectiveFilterDirs=16
+    $ShellCompDirectiveKeepOrder=32
+
+    # Prepare the command to request completions for the program.
+    # Split the command at the first space to separate the program and arguments.
+    $Program,$Arguments = $Command.Split(" ",2)
+
+    $RequestComp="$Program __completeNoDesc $Arguments"
+    __eksctl_debug "RequestComp: $RequestComp"
+
+    # we cannot use $WordToComplete because it
+    # has the wrong values if the cursor was moved
+    # so use the last argument
+    if ($WordToComplete -ne "" ) {
+        $WordToComplete = $Arguments.Split(" ")[-1]
+    }
+    __eksctl_debug "New WordToComplete: $WordToComplete"
+
+
+    # Check for flag with equal sign
+    $IsEqualFlag = ($WordToComplete -Like "--*=*" )
+    if ( $IsEqualFlag ) {
+        __eksctl_debug "Completing equal sign flag"
+        # Remove the flag part
+        $Flag,$WordToComplete = $WordToComplete.Split("=",2)
+    }
+
+    if ( $WordToComplete -eq "" -And ( -Not $IsEqualFlag )) {
+        # If the last parameter is complete (there is a space following it)
+        # We add an extra empty parameter so we can indicate this to the go method.
+        __eksctl_debug "Adding extra empty parameter"
+        # PowerShell 7.2+ changed the way how the arguments are passed to executables,
+        # so for pre-7.2 or when Legacy argument passing is enabled we need to use
+        # `"`" to pass an empty argument, a "" or '' does not work!!!
+        if ($PSVersionTable.PsVersion -lt [version]'7.2.0' -or
+            ($PSVersionTable.PsVersion -lt [version]'7.3.0' -and -not [ExperimentalFeature]::IsEnabled("PSNativeCommandArgumentPassing")) -or
+            (($PSVersionTable.PsVersion -ge [version]'7.3.0' -or [ExperimentalFeature]::IsEnabled("PSNativeCommandArgumentPassing")) -and
+              $PSNativeCommandArgumentPassing -eq 'Legacy')) {
+             $RequestComp="$RequestComp" + ' `"`"'
+        } else {
+             $RequestComp="$RequestComp" + ' ""'
+        }
+    }
+
+    __eksctl_debug "Calling $RequestComp"
+    # First disable ActiveHelp which is not supported for Powershell
+    ${env:EKSCTL_ACTIVE_HELP}=0
+
+    #call the command store the output in $out and redirect stderr and stdout to null
+    # $Out is an array contains each line per element
+    Invoke-Expression -OutVariable out "$RequestComp" 2>&1 | Out-Null
+
+    # get directive from last line
+    [int]$Directive = $Out[-1].TrimStart(':')
+    if ($Directive -eq "") {
+        # There is no directive specified
+        $Directive = 0
+    }
+    __eksctl_debug "The completion directive is: $Directive"
+
+    # remove directive (last element) from out
+    $Out = $Out | Where-Object { $_ -ne $Out[-1] }
+    __eksctl_debug "The completions are: $Out"
+
+    if (($Directive -band $ShellCompDirectiveError) -ne 0 ) {
+        # Error code.  No completion.
+        __eksctl_debug "Received error from custom completion go code"
+        return
+    }
+
+    $Longest = 0
+    [Array]$Values = $Out | ForEach-Object {
+        #Split the output in name and description
+        $Name, $Description = $_.Split("`t",2)
+        __eksctl_debug "Name: $Name Description: $Description"
+
+        # Look for the longest completion so that we can format things nicely
+        if ($Longest -lt $Name.Length) {
+            $Longest = $Name.Length
+        }
+
+        # Set the description to a one space string if there is none set.
+        # This is needed because the CompletionResult does not accept an empty string as argument
+        if (-Not $Description) {
+            $Description = " "
+        }
+        @{Name="$Name";Description="$Description"}
+    }
+
+
+    $Space = " "
+    if (($Directive -band $ShellCompDirectiveNoSpace) -ne 0 ) {
+        # remove the space here
+        __eksctl_debug "ShellCompDirectiveNoSpace is called"
+        $Space = ""
+    }
+
+    if ((($Directive -band $ShellCompDirectiveFilterFileExt) -ne 0 ) -or
+       (($Directive -band $ShellCompDirectiveFilterDirs) -ne 0 ))  {
+        __eksctl_debug "ShellCompDirectiveFilterFileExt ShellCompDirectiveFilterDirs are not supported"
+
+        # return here to prevent the completion of the extensions
+        return
+    }
+
+    $Values = $Values | Where-Object {
+        # filter the result
+        $_.Name -like "$WordToComplete*"
+
+        # Join the flag back if we have an equal sign flag
+        if ( $IsEqualFlag ) {
+            __eksctl_debug "Join the equal sign flag back to the completion value"
+            $_.Name = $Flag + "=" + $_.Name
+        }
+    }
+
+    # we sort the values in ascending order by name if keep order isn't passed
+    if (($Directive -band $ShellCompDirectiveKeepOrder) -eq 0 ) {
+        $Values = $Values | Sort-Object -Property Name
+    }
+
+    if (($Directive -band $ShellCompDirectiveNoFileComp) -ne 0 ) {
+        __eksctl_debug "ShellCompDirectiveNoFileComp is called"
+
+        if ($Values.Length -eq 0) {
+            # Just print an empty string here so the
+            # shell does not start to complete paths.
+            # We cannot use CompletionResult here because
+            # it does not accept an empty string as argument.
+            ""
+            return
+        }
+    }
+
+    # Get the current mode
+    $Mode = (Get-PSReadLineKeyHandler | Where-Object {$_.Key -eq "Tab" }).Function
+    __eksctl_debug "Mode: $Mode"
+
+    $Values | ForEach-Object {
+
+        # store temporary because switch will overwrite $_
+        $comp = $_
+
+        # PowerShell supports three different completion modes
+        # - TabCompleteNext (default windows style - on each key press the next option is displayed)
+        # - Complete (works like bash)
+        # - MenuComplete (works like zsh)
+        # You set the mode with Set-PSReadLineKeyHandler -Key Tab -Function <mode>
+
+        # CompletionResult Arguments:
+        # 1) CompletionText text to be used as the auto completion result
+        # 2) ListItemText   text to be displayed in the suggestion list
+        # 3) ResultType     type of completion result
+        # 4) ToolTip        text for the tooltip with details about the object
+
+        switch ($Mode) {
+
+            # bash like
+            "Complete" {
+
+                if ($Values.Length -eq 1) {
+                    __eksctl_debug "Only one completion left"
+
+                    # insert space after value
+                    [System.Management.Automation.CompletionResult]::new($($comp.Name | __eksctl_escapeStringWithSpecialChars) + $Space, "$($comp.Name)", 'ParameterValue', "$($comp.Description)")
+
+                } else {
+                    # Add the proper number of spaces to align the descriptions
+                    while($comp.Name.Length -lt $Longest) {
+                        $comp.Name = $comp.Name + " "
+                    }
+
+                    # Check for empty description and only add parentheses if needed
+                    if ($($comp.Description) -eq " " ) {
+                        $Description = ""
+                    } else {
+                        $Description = "  ($($comp.Description))"
+                    }
+
+                    [System.Management.Automation.CompletionResult]::new("$($comp.Name)$Description", "$($comp.Name)$Description", 'ParameterValue', "$($comp.Description)")
+                }
+             }
+
+            # zsh like
+            "MenuComplete" {
+                # insert space after value
+                # MenuComplete will automatically show the ToolTip of
+                # the highlighted value at the bottom of the suggestions.
+                [System.Management.Automation.CompletionResult]::new($($comp.Name | __eksctl_escapeStringWithSpecialChars) + $Space, "$($comp.Name)", 'ParameterValue', "$($comp.Description)")
+            }
+
+            # TabCompleteNext and in case we get something unknown
+            Default {
+                # Like MenuComplete but we don't want to add a space here because
+                # the user need to press space anyway to get the completion.
+                # Description will not be shown because that's not possible with TabCompleteNext
+                [System.Management.Automation.CompletionResult]::new($($comp.Name | __eksctl_escapeStringWithSpecialChars), "$($comp.Name)", 'ParameterValue', "$($comp.Description)")
+            }
+        }
+
+    }
+}
+
+Register-ArgumentCompleter -CommandName 'eksctl' -ScriptBlock ${__eksctlCompleterBlock}
+
+```
