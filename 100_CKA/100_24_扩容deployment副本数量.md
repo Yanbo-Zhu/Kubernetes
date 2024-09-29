@@ -9,6 +9,9 @@
 
 将名为loadbalancer的deployment资源的Pod的副本数扩容为6个。
 
+---
+将deployment presentation 扩展至4 个pods
+
 # 2 文档
 
 

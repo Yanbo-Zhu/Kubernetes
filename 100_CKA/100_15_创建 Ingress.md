@@ -16,6 +16,10 @@ namespace：ing-internal
 可以使用以下命令检查服务 hello 的可用性，该命令应返回 hello：
 curl -kL <INTERNAL_IP>/hello
 
+---
+==that **IngressClass** in Kubernetes is not namespace-specific.==
+
+
 # 2 文档
 
 

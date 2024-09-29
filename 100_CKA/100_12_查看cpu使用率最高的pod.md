@@ -12,6 +12,11 @@
 
 考试时可能会有变化，比如CPU 换成MEMORY，要学会举一反三。如果考试时紧张怕记错了，可以在终端快速查询。
 
+--- 
+通过pod label name=cpu-loader,找到运行时占用大
+量CPU 的pod，并将占用CPU 最高的pod 名称写入文
+件/opt/KUTR000401/KUTR00401.txt（已存在)
+
 # 2 参考文档
 
 https://kubernetes.io/zh-cn/docs/reference/kubectl/
