@@ -6,6 +6,16 @@ https://kubernetes.io/zh/docs/concepts/services-networking/network-policies/
 
  Concepts → Services, Load Balancing, and Networking → Network Policies
 
+---
+
+在现有的namespace my-app 中创建一个名为
+allow-port-from-namespace 的新NetworkPolicy。确保
+新的NetworkPolicy 允许namespace echo 中的Pods 连
+接到namespace my-app 中的Pods 的9000 端口。
+进一步确保新的NetworkPolicy：
+不允许对没有在监听端口9000 的Pods 的访问
+不允许非来自namespace echo 中的Pods 的访问
+
 # 1 同一个 namespace 之间的pods 访问
 
 
@@ -23,15 +33,6 @@ https://kubernetes.io/zh/docs/concepts/services-networking/network-policies/
 -不允许不来自namespace my-app的pods的访问
 
 
-====
-在现有的namespace my-app 中创建一个名为
-allow-port-from-namespace 的新NetworkPolicy。确保
-新的NetworkPolicy 允许namespace echo 中的Pods 连
-接到namespace my-app 中的Pods 的9000 端口。
-进一步确保新的NetworkPolicy：
-不允许对没有在监听端口9000 的Pods 的访问
-不允许非来自namespace echo 中的Pods 的访问
-
 
 
 ====
@@ -40,6 +41,19 @@ networkpolicy,pod,deployment 等官网都有模版，对网络策略进行深刻
 到底是让限制进流量还是出流量，是限制所有还是针对限制。
 
 然后直接上官网copy 对应模块模版，然后根据题目要求进行相应更改即可
+
+---
+在现有的namespace my-app 中创建一个名为
+allow-port-from-namespace 的新NetworkPolicy。确保
+新的NetworkPolicy 允许namespace echo 中的Pods 连
+接到namespace my-app 中的Pods 的9000 端口。
+(在 namespace my-app 中创建一个 NetworkPolicy with ingress rule )
+
+进一步确保新的NetworkPolicy：
+不允许对没有在监听端口9000 的Pods 的访问
+不允许非来自namespace echo 中的Pods 的访问
+
+
 
 ## 1.2 解题
 
@@ -198,7 +212,7 @@ Namespace B上新建一个NetworkPolicy
 
 
 ```
-# 切换到指定集群
+# 3 切换到指定集群
 kubectl config use-context [NAME]
 # 查看 namespace corp-bar 的标签，如：kubernetes.io/metadata.name=corp-bar
 kubectl get ns --show-labels

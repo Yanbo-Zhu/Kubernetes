@@ -32,13 +32,23 @@ bin/sh -c 'tail -n+1 -f /var/log/legacy-app.log'
     - **`/var/`**: This is a directory, not a file. Typically, `tail` should be used with a specific file, not a directory.
 
 
-
 2 任务2 
 Use a volume mount named logs to make the file /var/log/11-factor-app.log available  to the sidecar container 
 
 使用volume挂载/var/log/目录，确保sidecar能访问/var/log/11-factor-app.log文件
 除了添加所需要的 volume mount 以外，请勿更改现有容器的规格。
 
+---
+
+使用busybox Image 来将名为sidecar 的sidecar 容器添
+加到现有的Pod 11-factor-app 中。
+新的sidecar 容器必须运行以下命令：
+/bin/sh, -c, 'tail -n+1 -f /var/log/11-factor-app.log'
+使用挂载在/var/log 的Volume，使日志文件
+11-factor-app.log 可用于sidecar 容器。
+
+除了添加所需要的volume mount 以外，请勿更改现有容器的
+规格
 
 # 2 参考文档 
 

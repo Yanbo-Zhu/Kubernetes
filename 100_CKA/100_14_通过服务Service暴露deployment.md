@@ -11,8 +11,10 @@
 
 创建一个名为front-end-svc 的service，以暴露容器端口http， service的类型为NodePort。 (配置此 service，以通过各个 Pod 所在的节点上的 NodePort 来公开他们。)
 
+---
 
  重新配置一个已经存在的deployment front-end，在名字为nginx的容器里面添加一个端口配置，名字为http，暴露端口号为80/TCP.
+ 
   然后创建一个service，名字为front-end-svc，暴露该deployment的http端口，并且service的类型为NodePort。
 
 # 2 参考文档
@@ -115,16 +117,52 @@ kubectl edit svc front-end-svc
  app: front-end       注意 yaml 里是写冒号，而不是等号，不是 app=front-end。
 
 6
-
 kubectl get pod,svc -o wide 
+```
+candidate@node01:~/yaml$ k get pod,svc -o wide
+NAME                                READY   STATUS    RESTARTS        AGE     IP            NODE     NOMINATED NODE   READINESS GATES
+pod/11-factor-app                   1/1     Running   3 (153m ago)    106d    10.244.2.70   node01   <none>           <none>
+pod/csi-hostpath-socat-0            1/1     Running   3 (153m ago)    107d    10.244.2.67   node01   <none>           <none>
+pod/csi-hostpathplugin-0            8/8     Running   17 (153m ago)   96d     10.244.2.71   node01   <none>           <none>
+pod/foo                             1/1     Running   3 (153m ago)    106d    10.244.2.62   node01   <none>           <none>
+pod/front-end-65cdcc6759-flqf2      1/1     Running   0               17m     10.244.2.83   node01   <none>           <none>
+pod/kucc8                           2/2     Running   0               84m     10.244.2.80   node01   <none>           <none>
+pod/my-csi-app                      1/1     Running   3 (153m ago)    106d    10.244.2.75   node01   <none>           <none>
+pod/nginx-kusc00401                 1/1     Running   0               109m    10.244.2.79   node01   <none>           <none>
+pod/presentation-56cd7794d8-2r5fv   1/1     Running   0               3h21m   10.244.2.78   node01   <none>           <none>
+pod/presentation-56cd7794d8-2w8xc   1/1     Running   0               3h21m   10.244.2.77   node01   <none>           <none>
+pod/presentation-56cd7794d8-jtqk8   1/1     Running   3 (153m ago)    106d    10.244.2.61   node01   <none>           <none>
+pod/presentation-56cd7794d8-ph5sr   1/1     Running   0               3h21m   10.244.2.76   node01   <none>           <none>
+pod/web-server                      1/1     Running   0               51m     10.244.2.81   node01   <none>           <none>
 
-curl NodeIP:port
+NAME                       TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)           AGE     SELECTOR
+service/front-end-svc      NodePort    10.5.211.183   <none>        80:32365/TCP      3m49s   app=front-end
+service/hostpath-service   NodePort    10.8.155.109   <none>        10000:30488/TCP   107d    app.kubernetes.io/component=socat,app.kubernetes.io/instance=hostpath.csi.k8s.io,app.kubernetes.io/name=csi-hostpath-socat,app.kubernetes.io/part-of=csi-driver-host-path
+service/kubernetes         ClusterIP   10.0.0.1       <none>        443/TCP           107d    <none>
+
+```
+
+nodePort: 32365
+Port: 80
+targetPort: 80
+
+全部用curl 验证
+1 用 pod 本身的ip 和 tragetPort (80)
+curl podIP:port
     curl 10.7.30.108:80  
-    curl 10.7.30.108:32600 是不行的 , 不通 
-curl HostName:port
-    curl node01:32600
-curl SvcIP
-    curl 10.7.30.108
+
+2 用servcie 中得到的nodePort (32365)
+curl node01_HostName:nodePort 
+    curl node01:32365
+
+3 用 servcie 中得到clusterIP
+curl clusterIP
+    curl 10.5.211.183
+curl clusterIP:Port
+    curl 10.5.211.183:80
+curl clusterIP:nodePort是行不通的
+curl 10.5.211.183:32365
+    
 ![](image/Pasted%20image%2020240919222916.png)
 
 
