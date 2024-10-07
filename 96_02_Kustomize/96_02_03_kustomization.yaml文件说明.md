@@ -744,7 +744,7 @@ patchesJSON6902:
     kind: Deployment
     name: deploy
   patch: |-
-    - op: replace
+    - op: replace  # 注意这里
       path: /spec/template/spec/containers/0/image
       value: nginx:latest
 EOF
