@@ -123,13 +123,42 @@ StatefulSet 用来管理某Pod集合的部署和扩缩, 并未这些Pod提供持
 ![](image/Pasted%20image%2020240711200103.png)
 
 
+## 2.2 StatefulSets 的优点 
 
-## 2.2 StatefulSet可以解决什么情况 
+StatefulSet is a [Kubernetes resource](https://blog.purestorage.com/perspectives/data-on-kubernetes-at-scale-why-your-csi-driver-cant-keep-up/) used to manage stateful applications. While Deployments excel at managing stateless applications, Kubernetes offers StatefulSets for stateful applications with specific requirements. StatefulSets guarantee ordering and uniqueness of pod lifecycles, making them ideal for applications that rely on:
+
+- **Stable network identities:** Each pod managed by a StatefulSet is assigned a unique and persistent network identifier. This identifier remains constant even if the pod is rescheduled to a different node in the cluster. This is crucial for applications, like databases, that rely on specific network addresses for communication.
+- **Ordered, controlled updates:** StatefulSets pods are created, scaled, and deleted in a predetermined order, allowing for proper initialization and graceful shutdown of applications during deployments. This minimizes disruption and data loss.
+- **Persistent storage integration:** StatefulSets seamlessly integrate with Persistent Volume Claims (PVCs). PVCs act as requests for storage resources, allowing pods to access persistent storage that survives pod restarts or rescheduling. This ensures stateful applications maintain their data across the lifecycle of the pod.
+
+### 2.2.1 Stable network identities 
+
+persistent pod identifier.
+persistent podname
+
+These pods are created from the same spec, but are not interchangeable: **each has a persistent identifier that it maintains across any rescheduling**
+
+在 statefulSet 中定义 replicas number 
+
+The _Pods_' _names_ take the form `<_statefulset name_>-<ordinal index> `. Since the web _StatefulSet_ has two replicas, it creates two _Pods_, web-0 and web-0 
+
+-- 自定义 pod name in statefulSet 
+https://stackoverflow.com/questions/58668190/how-to-set-hostname-for-kubernetes-pod-in-statefulset
+When the StatefulSet controller creates a Pod, it adds a label, _statefulset.kubernetes.io/pod-name_ , that is set to the name of the Pod.
+
+-- rollout 后的 pod name
+After restarting , reschueling a pod, 这 name of ne pod keep persistent, same as before 
+
+
+#### 2.2.1.1 database immer permanant identifier
+
+database can be identifi zirt 
+datan ins database Volume unter demselbent Name schreiben konnen 
 
 
 
 
-### 2.2.1 pod有固定的名字可以更好的去做logAnalysis和Tracing 
+#### 2.2.1.2 pod有固定的名字可以更好的去做logAnalysis和Tracing 
 
 
 Having made some practical experiences with the Helm Chart in QS and other contexts, it became evident that traditional log analysis may still be required from time to time. After all, it's just a JBoss in a container.
@@ -149,57 +178,29 @@ StatefulSets may be a viable solution to this problem. Within StatefulSets, Pods
 我们仍然需要去refer to "the second background server"， 知道我们找到 一种方法 去使得 the number and lifecycle of Pods completely irrelevant
 In other words: it is still quite common to want to refer to "the second background server"  until we find the number and lifecycle of Pods completely irrelevant (with sufficiently high stability), we should try to maintain permanent deterministic Pod names.
 
-## 2.3 StatefulSets 的优点 
-
-StatefulSet is a [Kubernetes resource](https://blog.purestorage.com/perspectives/data-on-kubernetes-at-scale-why-your-csi-driver-cant-keep-up/) used to manage stateful applications. While Deployments excel at managing stateless applications, Kubernetes offers StatefulSets for stateful applications with specific requirements. StatefulSets guarantee ordering and uniqueness of pod lifecycles, making them ideal for applications that rely on:
-
-- **Stable network identities:** Each pod managed by a StatefulSet is assigned a unique and persistent network identifier. This identifier remains constant even if the pod is rescheduled to a different node in the cluster. This is crucial for applications, like databases, that rely on specific network addresses for communication.
-- **Ordered, controlled updates:** StatefulSets pods are created, scaled, and deleted in a predetermined order, allowing for proper initialization and graceful shutdown of applications during deployments. This minimizes disruption and data loss.
-- **Persistent storage integration:** StatefulSets seamlessly integrate with Persistent Volume Claims (PVCs). PVCs act as requests for storage resources, allowing pods to access persistent storage that survives pod restarts or rescheduling. This ensures stateful applications maintain their data across the lifecycle of the pod.
-
-### 2.3.1 Stable network identities 
-
-persistent pod identifier.
-persistent podname
-
-These pods are created from the same spec, but are not interchangeable: **each has a persistent identifier that it maintains across any rescheduling**
-
-在 statefulSet 中定义 replicas number 
-
-The _Pods_' _names_ take the form `<_statefulset name_>-<ordinal index> `. Since the web _StatefulSet_ has two replicas, it creates two _Pods_, web-0 and web-0 
-
--- 自定义 pod name in statefulSet 
-https://stackoverflow.com/questions/58668190/how-to-set-hostname-for-kubernetes-pod-in-statefulset
-When the StatefulSet controller creates a Pod, it adds a label, _statefulset.kubernetes.io/pod-name_ , that is set to the name of the Pod.
-
--- rollout 后的 pod name
-After restarting , reschueling a pod, 这 name of ne pod keep persistent, same as before 
-
-
-
-
-### 2.3.2 guarantee data persistence across pod rescheduling
+### 2.2.2 guarantee data persistence across pod rescheduling
 StatefulSets do not require persistent storage
 
 **Storage:** Deployments utilize ephemeral storage, meaning any data stored on the pod is lost when the pod is restarted or rescheduled. This is acceptable for stateless applications that don’t require persistent data storage. StatefulSets leverage PVCs to guarantee data persistence across pod rescheduling. PVCs act as requests for storage resources, allowing pods to access persistent storage that survives pod restarts or moves between nodes. This ensures stateful applications maintain their data across the pod lifecycle.
 
-### 2.3.3 perform deployments and scaling operations in a controlled and ordered manne
+### 2.2.3 perform deployments and scaling operations in a controlled and ordered manne
 Pods are scaled up und down sequentially, not instantly
+
 
 **Scaling and updates:** Deployments offer a flexible approach to scaling. New pods can be added or removed on the fly without a guaranteed order. StatefulSets perform deployments and scaling operations in a controlled and ordered manner. Pods are created, updated, and deleted in a predetermined sequence, allowing for proper initialization and graceful shutdown of applications during deployments.
 
 
-## 2.4 
+问题 slower rollout behaviour ？ 
+Die Skalierung in Statefuls kann man konfigurieren , 不需要担心 。 Kein Unterschied im Betrieb der Container als Depolyment und StatefulSets 
 
-
-## 2.5 StatefulSet Components
+## 2.3 StatefulSet Components
 
 A Headless Service 
 A StatefulSet
 A Persistent Volume
 
 
-## 2.6 StatefulSet 使用场景和限制
+## 2.4 StatefulSet 使用场景和限制
 
 ![](image/56.webp)
 
@@ -209,7 +210,7 @@ A Persistent Volume
     - 有序的、优雅的部署和缩放：按顺序地增加副本、减少副本，并在减少副本时执行清理。
     - 有序的、自动的滚动更新：按顺序自动地执行滚动更新。
 
-## 2.7 部署 StatefulSet
+## 2.5 部署 StatefulSet
 
 1
 创建 StatefulSet
@@ -272,7 +273,7 @@ curl nginx-svc
 
 kubectl delete -f k8s-sts.yaml
 
-## 2.8 Pod 的管理策略
+## 2.6 Pod 的管理策略
 
 StatefulSet 的 Pod 的管理策略（podManagementPolicy）分为：OrderedReady（有序启动，默认值） 和 Parallel（并发一起启动）。
 
@@ -324,7 +325,7 @@ spec:
 ```
 
 
-## 2.9 分区更新
+## 2.7 分区更新
 
 - StatefulSet 的更新策略：
     - OnDelete：删除之后才更新。
