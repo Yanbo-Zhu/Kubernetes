@@ -122,8 +122,37 @@ puppet agent --enable
 After the next puppet run, the Cluster and the IVU.plan deployment inside will be rebuilt with its original configuration. 
 
 
+# 2 kubectl events
 
-# 2 ssh into node
+kubectl events --namespace prom-lzm -o yaml --for pod/prometheus-lzm-prometheus-0
+
+# 3 kubectl logs
+https://stackoverflow.com/questions/57007134/how-to-see-logs-of-terminated-pods
+> kubectl logs 加-p ， 后边不是让你加pod name 的
+
+kubectl logs prometheus-lzm-prometheus-0 -c prometheus -n prom-lzm -f 
+
+```
+-c, --container="": Print the logs of this container
+  -f, --follow[=false]: Specify if the logs should be streamed.
+      --limit-bytes=0: Maximum bytes of logs to return. Defaults to no limit.
+  -p, --previous[=false]: If true, print the logs for the previous instance of the container in a pod if it exists.
+      --since=0: Only return logs newer than a relative duration like 5s, 2m, or 3h. Defaults to all logs. Only one of since-time / since may be used.
+      --since-time="": Only return logs after a specific date (RFC3339). Defaults to all logs. Only one of since-time / since may be used.
+      --tail=-1: Lines of recent log file to display. Defaults to -1, showing all log lines.
+      --timestamps[=false]: Include timestamps on each line in the log output
+
+```
+
+
+# 4 切换为 root user 
+
+```
+su - root
+```
+
+
+# 5 kubectl ssh:  
 
 This kubectl addon is from here. [https://github.com/luksa/kubectl-plugins](https://github.com/luksa/kubectl-plugins). And I have verified that. T
 He provides a provider-agnostic way to get a shell into a worker node if you have cluster-admin privileges.
@@ -136,6 +165,8 @@ P.S. This is connecting inside of a freshly created pod on the specified node. I
 
 You can get your node name with the command: kubectl get nodes 
 
+## 5.1 into node
+
 Example usage:
 ```
 kubectl ssh node             # access the node in a single-node cluster 
@@ -144,17 +175,30 @@ kubectl ssh node my-node ls   # access a node in a multi-node cluster and execut
 
 ```
 
+## 5.2 into pod 
+
+```
+kubectl ssh pod prometheus-lzm-prometheus-0 -c prometheus -n prom-lzm                                                                    2484ms  Sat Oct 12 13:21:08 2024
+/prometheus $
+/prometheus $ sudo su
+sh: sudo: not found
+/prometheus $ su - root
+su: must be suid to work properly
+/prometheus $
+
+```
 
 
 
-# 3 ssh into the pod
+# 6 kubectl exec 
+## 6.1 ssh into the pod
 https://kubernetes.io/docs/tasks/debug/debug-application/get-shell-running-container/
 https://www.valewood.org/topics/devops/learn/technology/kubernetes/how-to-ssh-into-a-k8s-pod/
 \
 > The double dash (--) separates the arguments you want to pass to the command from the kubectl arguments.
 > The short options -i and -t are the same as the long options --stdin and --tty
 
-## 3.1 得到所有的 pods
+### 6.1.1 得到所有的 pods
 
 kubectl get pod -n default 
 
@@ -174,7 +218,7 @@ promtail-8hmqm                             1/1     Running   0          2d23h
 promtail-rrfdx                             1/1     Running   0          2d23h
 promtail-vfjgp                             1/1     Running   0          2d23h
 ```
-## 3.2 Running individual commands in a container 
+### 6.1.2 Running individual commands in a container 
 
 In an ordinary command window, not your shell, list the environment variables in the running container:
 
@@ -190,7 +234,7 @@ kubectl exec shell-demo -- ls /
 kubectl exec shell-demo -- cat /proc/1/mounts
 ```
 
-## 3.3 实操
+### 6.1.3 实操
 
 First, ensure you know the name of the pod you want to access. You can list all pods in a namespace with the command: `kubectl get pods -n <namespace>.`
 
@@ -216,9 +260,9 @@ then you can try something like /bin/sh or /bin/zsh
 
 This will open a shell inside of your application container. You can now execute any command you need.
 
-# 4 ssh into a container in a poad
+## 6.2 ssh into a container in a poad
 
-## 4.1 
+### 6.2.1 得到 container name
 
 kubectl describe pod prom-grafana-69d87c84f9-d9pxj
 选中 你你想要进入的 container 的name 和 id 
@@ -361,7 +405,7 @@ Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists fo
 Events:                      <none>
 ```
 
-## 4.2 使用 kubectl exec 进入
+### 6.2.2 使用 kubectl exec 进入
 
 If a Pod has more than one container, use `--container` or `-c` to specify a container in the `kubectl exec` command. For example, suppose you have a Pod named my-pod, and the Pod has two containers named _main-app_ and _helper-app_. The following command would open a shell to the _main-app_ container.
 
@@ -379,12 +423,13 @@ kubectl exec --stdin --tty prometheus-app-prometheus-0 -n default -- sh
 
 
 
-## 4.3 kubectl ssh in a plugin
+### 6.2.3 使用  kubectl ssh plugin
 
 
 https://github.com/jordanwilson230/kubectl-plugins
 
 `Usage: kubectl ssh [OPTIONAL: -n <namespace>] [OPTIONAL: -u <user>] [OPTIONAL: -c <Container Name>] [REQUIRED: <PodName> ] -- [command]`
 
-Example: kubectl ssh -n default -u root -c prometheus prometheus-282sd0s2 -- bash
-
+Example: 
+kubectl ssh -n default -u root -c prometheus prometheus-282sd0s2 -- bash
+kubectl ssh pod prometheus-lzm-prometheus-0 -c prometheus -n prom-lzm -u root -- bash
