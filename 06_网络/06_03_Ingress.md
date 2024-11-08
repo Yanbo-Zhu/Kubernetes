@@ -24,8 +24,18 @@ Kubernetes Ingress Controller 的功能如下：
 
 借助 NGINX Ingress Controller，您可以在四层至七层充分利用 Kubernetes 网络，从而增强 Kubernetes 的 service 之间的安全性和流量控制。
 
+# 2 what is ingress 
 
-# 2 为什么需要 Ingress ？
+ingress control the traffic to bounding service 
+
+Ingress is a Kubernetes resource that allows you to expose multiple services under a single IP address. An Ingress resource defines rules that determine how traffic from the external network should be forwarded to the services in your cluster.
+
+With Ingress, you can expose multiple services under a single IP address, and use rules to route traffic to the appropriate service based on the URL path or hostname. This allows you to expose multiple services with a single LoadBalancer or NodePort, reducing the cost and complexity of managing multiple load balancers or node ports.
+
+Ingress also provides additional features such as SSL termination, URL rewrites, and authentication, allowing you to implement complex routing rules and secure access to your services.
+
+
+# 3 为什么需要 Ingress ？
 
 - Service 可以使用 NodePort 暴露集群外访问端口，但是性能低、不安全并且端口的范围有限。
 - Service 缺少七层（OSI 网络模型）的统一访问入口，负载均衡能力很低，不能做限流、验证非法用户、链路追踪等等。
@@ -35,7 +45,7 @@ Kubernetes Ingress Controller 的功能如下：
 ![22.png](https://cdn.nlark.com/yuque/0/2022/png/513185/1648106820246-30eb8f18-0886-4934-a0cd-1cdc1e114bbe.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_38%2Ctext_6K645aSn5LuZ%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10%2Fformat%2Cwebp)
 
 
-# 3 Ingress介绍
+# 4 Ingress介绍
 
 在前面课程中已经提到，Service对集群之外暴露服务的主要方式有两种：NotePort和LoadBalancer，但是这两种方式，都有一定的缺点：
 - NodePort方式的缺点是会占用很多集群机器的端口，那么当集群服务变多的时候，这个缺点就愈发明显
@@ -59,9 +69,9 @@ Ingress（以Nginx为例）的工作原理如下：
 
 
 
-# 4 Ingress nginx 和 nginx ingress
+# 5 Ingress nginx 和 nginx ingress
   
-## 4.1 nginx Ingress（不用）
+## 5.1 nginx Ingress（不用）
 
 - nginx Ingress是 Nginx 官网适配 k8s 的，分为开源版和 nginx plus 版（收费）。
 - [官网地址](https://www.nginx.com/products/nginx-ingress-controller)。  
@@ -70,7 +80,7 @@ Ingress（以Nginx为例）的工作原理如下：
 
   
 
-## 4.2 ingress nginx
+## 5.2 ingress nginx
   
 - ingress nginx  是 k8s 官方出品的，会及时更新一些特性，性能很高，被广泛采用。
 - [官网地址](https://kubernetes.io/zh/docs/concepts/services-networking/ingress/#ingress-%E6%98%AF%E4%BB%80%E4%B9%88)。
@@ -78,7 +88,7 @@ Ingress（以Nginx为例）的工作原理如下：
 注意：以后如果不特别说明，ingress = ingress nginx 。
 
 
-# 5 Ingress 安装 
+# 6 Ingress 安装 
 ●  自建集群采用裸金属安装方式。 
 ●  下载： wget https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.1.2/deploy/static/provider/baremetal/deploy.yaml
 
@@ -808,7 +818,7 @@ kubectl delete -f deploy.yaml
 \
 
 
-# 6 Ingress 工作原理
+# 7 Ingress 工作原理
 
 ![26.png](https://cdn.nlark.com/yuque/0/2022/png/513185/1648106871470-c8097a0a-4a6c-4ce1-a5b5-0898641801ca.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_22%2Ctext_6K645aSn5LuZ%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10%2Fformat%2Cwebp%2Fresize%2Cw_777%2Climit_0)
 
@@ -822,9 +832,9 @@ kubectl delete -f deploy.yaml
 
 
 
-# 7 Ingress使用
+# 8 Ingress使用
 
-## 7.1 环境准备 搭建ingress环境
+## 8.1 环境准备 搭建ingress环境
 
 ```
 # 创建文件夹
@@ -852,7 +862,7 @@ ingress-nginx   NodePort   10.98.75.163   <none>        80:32240/TCP,443:31335/T
 ![27.png](https://cdn.nlark.com/yuque/0/2022/png/513185/1648106886022-39954bc4-40e9-48bb-a227-9894e6e10963.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_31%2Ctext_6K645aSn5LuZ%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10%2Fformat%2Cwebp)
 
 
-## 7.2 准备service和pod
+## 8.2 准备service和pod
 
 为了后面的实验比较方便，创建如下图所示的模型
 
@@ -945,7 +955,7 @@ tomcat-service   ClusterIP   None         <none>        8080/TCP   48s
 ```
 
 
-## 7.3 Http代理
+## 8.3 Http代理
 
 创建ingress-http.yaml
 
@@ -998,7 +1008,7 @@ tomcat.itheima.com  / tomcat-service:8080(10.244.1.94:8080,10.244.1.95:8080,10.2
 ```
 
 
-## 7.4 Https代理
+## 8.4 Https代理
 
 创建证书
 
@@ -1070,10 +1080,10 @@ tomcat.itheima.com /  tomcat-service:8080(10.244.1.99:8080,10.244.2.117:8080,10.
 
 
 
-# 8 实战
+# 9 实战
 
 
-## 8.1 基本配置
+## 9.1 基本配置
 
 
 语法
@@ -1110,7 +1120,7 @@ spec:
 
 
 
-### 8.1.1 示例
+### 9.1.1 示例
 
 
 vi k8s-ingress.yaml
@@ -1154,7 +1164,7 @@ kubectl apply -f k8s-ingress.yaml
 
 
 
-### 8.1.2 测试示例（后面有更简单的测试方法）： 
+### 9.1.2 测试示例（后面有更简单的测试方法）： 
 
 ● 第一种方案： 
   ○ ① 在 win 中的 hosts（C:\Windows\System32\drivers\etc\hosts） 文件中添加如下的信息：
@@ -1182,7 +1192,7 @@ cat nginx.conf |  grep nginx.xudaxian.com -A 20
 
 
 
-## 8.2 默认后端 
+## 9.2 默认后端 
 
 
 ```
@@ -1217,7 +1227,7 @@ spec:
 - tomcat.com 域名的 非 `/abc` 开头的请求，都会转到 defaultBackend 。
 - 非 tomcat.com 域名下的所有请求，也会转到 defaultBackend 。
 
-## 8.3 Ingress 中的 nginx 的全局配置
+## 9.3 Ingress 中的 nginx 的全局配置
 
 - [官方文档](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/configmap/)。
 
@@ -1255,7 +1265,7 @@ data:
 
 
 
-## 8.4 限流
+## 9.4 限流
 
 ```
 apiVersion: networking.k8s.io/v1
@@ -1283,7 +1293,7 @@ spec:
 
 
 
-## 8.5 路径重写
+## 9.5 路径重写
 
 
 路径重写，经常用于前后端分离。
@@ -1318,7 +1328,7 @@ spec:
 
 
 
-## 8.6 基于 Cookie 的会话保持技术
+## 9.6 基于 Cookie 的会话保持技术
 
  Service 只能基于 ClientIP，但是 ingress 是七层负载均衡，可以基于 Cookie 实现会话保持。 
 
@@ -1348,7 +1358,7 @@ spec:
 ```
 
 
-## 8.7 配置 SSL
+## 9.7 配置 SSL
 
 
  生成证书语法：
@@ -1409,9 +1419,9 @@ spec:
 
 
 
-# 9 Ingress 金丝雀发布
+# 10 Ingress 金丝雀发布
 
-## 9.1 概述 
+## 10.1 概述 
 
 
 - 以前使用 Kubernetes 的 Service 配合 Deployment 进行金丝雀的部署，原理如下所示：
@@ -1425,7 +1435,7 @@ spec:
 ![](https://cdn.nlark.com/yuque/0/2022/png/513185/1648107040221-b3946d57-fe50-46b0-aa2d-d9ed445e45d3.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_41%2Ctext_6K645aSn5LuZ%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10)
 
 
-## 9.2 准备工作
+## 10.2 准备工作
 
 
 部署 Service  和 Deployment：
@@ -1546,7 +1556,7 @@ spec:
 kubectl apply -f k8s-ingress-canary-deploy.yaml
 
 
-### 9.2.1 部署普通的 ingress ：
+### 10.2.1 部署普通的 ingress ：
 
 vi k8s-ingress-v1.yaml
 
@@ -1590,7 +1600,7 @@ curl -H "Host: nginx.xudaxian.com" http://192.168.65.101
 
 
 
-## 9.3 基于 Header 的流量切分
+## 10.3 基于 Header 的流量切分
 
 
 vi k8s-ingress-header.yaml
@@ -1639,7 +1649,7 @@ curl -H "Host: nginx.xudaxian.com" -H "Region: sh" http://192.168.65.101
 
 
 
-## 9.4 基于 Cookie 的流量切分
+## 10.4 基于 Cookie 的流量切分
 
 ```
 apiVersion: networking.k8s.io/v1
@@ -1670,7 +1680,7 @@ curl -H "Host: nginx.xudaxian.com" --cookie "vip=always" http://192.168.65.101
 
 
 
-# 10 基于服务权重的流量切分
+# 11 基于服务权重的流量切分
 
 ```
 apiVersion: networking.k8s.io/v1

@@ -1,4 +1,7 @@
 
+==A Kubernetes service is a resource you create to make a single, constant point of entry to a group of pods providing the same service.== Each service has an IP address and port that never change while the service exists. Clients can open connections to that IP and Port and those connections are then routed to ones on the pod backing the service. This way, clients of service don't need to know the location of individual pods providing the service, allowing those pods to be moved around the cluster at any time.
+
+
 # 1 Service介绍
 
 在kubernetes中，pod是应用程序的载体，我们可以通过pod的ip来访问应用程序，但是pod的ip地址不是固定的，这也就意味着不方便直接采用pod的ip对服务进行访问。
