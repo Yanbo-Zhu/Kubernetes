@@ -1,39 +1,4 @@
 
-# 1 Pod 容器集
-
-**Pod** 是包含一个或多个容器的容器组，是 Kubernetes 中创建和管理的最小对象。
-Pod 是可以在 Kubernetes 中创建和管理的、最小的可部署的计算单元。
-
-
-Pod（就像在鲸鱼荚或者豌豆荚中）是一组（一个或多个） 容器； 这些容器共享存储、网络、以及怎样运行这些容器的声明。 Pod 中的内容总是并置（colocated）的并且一同调度，在共享的上下文中运行。 Pod 所建模的是特定于应用的 “逻辑主机”，其中包含一个或多个应用容器， 这些容器相对紧密地耦合在一起。 在非云环境中，在相同的物理机或虚拟机上运行的应用类似于在同一逻辑主机上运行的云应用。
-
-除了应用容器，Pod 还可以包含在 Pod 启动期间运行的 Init 容器。 你也可以在集群支持临时性容器的情况下， 为调试的目的注入临时性容器。
-
-
-![](image/Pasted%20image%2020240611155306.png)
-
-----
-
-
-Pod 有以下特点：
-
-- Pod是kubernetes中**最小的调度单位****（**原子单元**）**，Kubernetes直接管理Pod而不是容器。
-- 同一个Pod中的容器总是会被自动安排到集群中的**同一节点**（物理机或虚拟机）上，并且**一起调度**。
-- Pod可以理解为运行特定应用的“逻辑主机”，这些容器共享存储、网络和配置声明(如资源限制)。
-- 每个 Pod 有唯一的 IP 地址。 **IP地址分配给Pod**，在同一个 Pod 内，所有容器共享一个 IP 地址和端口空间，Pod 内的容器可以使用`localhost`互相通信。
-
----
-
-例如，你可能有一个容器，为共享卷中的文件提供 Web 服务器支持 (Web Server)，以及一个单独的 "边车 (sidercar)" 容器负责从远端更新这些文件 (File Puller)，如下图所示：
-
-Web Server 和 File Puller, 共享同一个Volumen 里面的文件 
-
-
-
-![](https://cdn.nlark.com/yuque/0/2022/svg/28915315/1663812948001-3b8ae10e-1a30-4f56-b465-502201528156.svg)
-
-
-# 2 总览
 
 
 ```shell
@@ -72,7 +37,52 @@ kubectl delete pod mynginx --force
 ![](https://cdn.nlark.com/yuque/0/2022/png/28915315/1663814727899-c31f2117-d540-48fc-93dc-e004dbf1abfb.png)
 
 
-# 3 查看 
+# 1 kubectl explain
+
+kubectl explain 资源类型         查看某种资源可以配置的一级属性
+kubectl explain 资源类型.属性     查看属性的子属性
+
+```
+#小提示：
+#   在这里，可通过一个命令来查看每种资源的可配置项
+#   kubectl explain 资源类型         查看某种资源可以配置的一级属性
+#   kubectl explain 资源类型.属性     查看属性的子属性
+[root@k8s-master01 ~]# kubectl explain pod
+KIND:     Pod
+VERSION:  v1
+FIELDS:
+   apiVersion   <string>
+   kind <string>
+   metadata     <Object>
+   spec <Object>
+   status       <Object>
+
+[root@k8s-master01 ~]# kubectl explain pod.metadata
+KIND:     Pod
+VERSION:  v1
+RESOURCE: metadata <Object>
+FIELDS:
+   annotations  <map[string]string>
+   clusterName  <string>
+   creationTimestamp    <string>
+   deletionGracePeriodSeconds   <integer>
+   deletionTimestamp    <string>
+   finalizers   <[]string>
+   generateName <string>
+   generation   <integer>
+   labels       <map[string]string>
+   managedFields        <[]Object>
+   name <string>
+   namespace    <string>
+   ownerReferences      <[]Object>
+   resourceVersion      <string>
+   selfLink     <string>
+   uid  <string>
+```
+
+
+
+# 2 查看 kubectl get pod
 
 
 
@@ -94,7 +104,7 @@ kube-system   kube-scheduler-master            1/1     Running   0          2d1h
 ```
 
 
-# 4 创建并运行
+# 3 创建并运行 kubectl run
 
 
 kubernetes没有提供单独运行Pod的命令，都是通过Pod控制器来实现的
@@ -110,7 +120,7 @@ deployment.apps/nginx created
 
 
 
-# 5 查看pod信息
+# 4 查看pod信息
 
 ```shell
 # 查看Pod基本信息
@@ -172,7 +182,7 @@ Events:
   Normal  Started    3m36s      kubelet, node1     Started container nginx
 ```
 
-# 6 访问Pod
+# 5 访问Pod
 
 ```shell
 # 获取podIP
@@ -193,7 +203,7 @@ nginx   1/1     Running   0          190s   10.244.1.23   node1   ...
 </html>
 ```
 
-# 7 删除指定Pod
+# 6 删除指定Pod
 
 ```shell
 # 删除指定Pod
@@ -222,7 +232,7 @@ deployment.apps "nginx" deleted
 No resources found in dev namespace.
 ```
 
-# 8 通过 yaml file 
+# 7 通过 yaml file create Pod
 
 创建一个pod-nginx.yaml，内容如下：
 
