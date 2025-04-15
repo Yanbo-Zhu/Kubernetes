@@ -147,8 +147,7 @@ pc-replicaset       2        2         2       140m   nginx         nginx:1.17.2
 [root@k8s-master01 ~]# kubectl set image rs pc-replicaset nginx=nginx:1.17.1  -n dev
 replicaset.apps/pc-replicaset image updated
 # 再次查看，发现镜像版本已经变更了
-[root@k8s-master01 ~]# kubectl get rs -n dev -o wide
-NAME                 DESIRED  CURRENT   READY   AGE    CONTAINERS   IMAGES            ...
+[root@k8s-master01 ~]# kubectl get rs -n dev -o wideNAME                 DESIRED  CURRENT   READY   AGE    CONTAINERS   IMAGES            ...
 pc-replicaset        2        2         2       145m   nginx        nginx:1.17.1 ...
 ```
 
@@ -180,12 +179,26 @@ replicaset.apps "pc-replicaset" deleted
 
 
 
-# 2 Deployment(Deploy)
+# 2 Deployment
+
+- With a Deployment, you can manage Pods in a declarative and upgradable manner.
+- Replicas: Kubernetes will make sure that the number of Pods created from the template always are available.
+- When the Deployment is updated, Kubernetes will perform a rolling update of the Pods running in the cluster (i.e., creating one new Pod, and remove an old one, until all Pods are new; other deployment strategies are possible)
 
 为了更好的解决服务编排的问题，kubernetes在V1.2版本开始，引入了Deployment控制器。值得一提的是，这种控制器并不直接管理pod，而是通过管理ReplicaSet来简介管理Pod，即：Deployment管理ReplicaSet，ReplicaSet管理Pod。所以Deployment比ReplicaSet功能更加强大。
 
+在kubernetes中，Pod是最小的控制单元，但是kubernetes很少直接控制Pod，一般都是通过Pod控制器来完成的。Pod控制器用于pod的管理，确保pod资源符合预期的状态，当pod的资源出现故障时，会尝试进行重启或重建pod。
+sda
+
+在kubernetes中Pod控制器的种类有很多，本章节只介绍一种：Deployment。
+
+> Deployment能够确保Prometheus的Pod能够按照预期的状态在集群中运行，而Pod实例可能随机运行在任意节点上
+
 
 ![img](https://gitee.com/yooome/golang/raw/main/22-k8s%E8%AF%A6%E7%BB%86%E6%95%99%E7%A8%8B-%E8%B0%83%E6%95%B4%E7%89%88/Kubenetes.assets/image-20200612005524778.png)
+
+![](image/Pasted%20image%2020240611160938.png)
+
 
 Deployment主要功能有下面几个：
 
@@ -258,7 +271,149 @@ spec:
 ```
 
 
+### 2.1.1 命令式操作
+
+
+```yaml
+# 1 命令格式: kubectl create deployment 名称  [参数] 
+# 2 --image  指定pod的镜像
+# 3 --port   指定端口
+# 4 --replicas  指定创建pod数量
+# 5 --namespace  指定namespace
+[root@master ~]# kubectl run nginx --image=nginx:latest --port=80 --replicas=3 -n dev
+deployment.apps/nginx created
+
+
+# 6 查看创建的Pod
+[root@master ~]# kubectl get pods -n dev
+NAME                     READY   STATUS    RESTARTS   AGE
+nginx-5ff7956ff6-6k8cb   1/1     Running   0          19s
+nginx-5ff7956ff6-jxfjt   1/1     Running   0          19s
+nginx-5ff7956ff6-v6jqw   1/1     Running   0          19s
+
+# 7 查看deployment的信息
+[root@master ~]# kubectl get deploy -n dev
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE
+nginx   3/3     3            3           2m42s
+
+# 8 UP-TO-DATE：成功升级的副本数量
+# 9 AVAILABLE：可用副本的数量
+[root@master ~]# kubectl get deploy -n dev -o wide
+NAME    READY UP-TO-DATE  AVAILABLE   AGE     CONTAINERS   IMAGES              SELECTOR
+nginx   3/3     3         3           2m51s   nginx        nginx:latest        run=nginx
+
+# 10 查看deployment的详细信息
+[root@master ~]# kubectl describe deploy nginx -n dev
+Name:                   nginx
+Namespace:              dev
+CreationTimestamp:      Wed, 08 May 2021 11:14:14 +0800
+Labels:                 run=nginx
+Annotations:            deployment.kubernetes.io/revision: 1
+Selector:               run=nginx
+Replicas:               3 desired | 3 updated | 3 total | 3 available | 0 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  25% max unavailable, 25% max 违规词汇
+Pod Template:
+  Labels:  run=nginx
+  Containers:
+   nginx:
+    Image:        nginx:latest
+    Port:         80/TCP
+    Host Port:    0/TCP
+    Environment:  <none>
+    Mounts:       <none>
+  Volumes:        <none>
+Conditions:
+  Type           Status  Reason
+  ----           ------  ------
+  Available      True    MinimumReplicasAvailable
+  Progressing    True    NewReplicaSetAvailable
+OldReplicaSets:  <none>
+NewReplicaSet:   nginx-5ff7956ff6 (3/3 replicas created)
+Events:
+  Type    Reason             Age    From                   Message
+  ----    ------             ----   ----                   -------
+  Normal  ScalingReplicaSet  5m43s  deployment-controller  Scaled up replicaset nginx-5ff7956ff6 to 3
+  
+# 11 删除 
+[root@master ~]# kubectl delete deploy nginx -n dev
+deployment.apps "nginx" deleted
+```
+
+
+### 2.1.2 配置式操作
+
+创建一个deploy-nginx.yaml，内容如下: 
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: dev
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      run: nginx
+  template:
+    metadata:
+      labels:
+        run: nginx
+    spec:
+      containers:
+      - image: nginx:latest
+        name: nginx
+        ports:
+        - containerPort: 80
+          protocol: TCP
+```
+
+
+然后就可以执行对应的创建和删除命令了
+
+创建：kubectl create -f deploy-nginx.yaml
+删除：kubectl delete -f deploy-nginx.yaml
+
+1 selector
+specify that this Deployment should manage Pods with the label app: my-app.
+The selector field in a Kubernetes Deployment specifies how to identify the Pods that the Deployment is responsible for managing. The selector ensures that the Deployment only manages Pods with specific labels.
+
+2  template
+ The template under the spec section is used to define the Pod configuration. The labels in the template should match the selector to ensure that the Deployment can manage the Pods it creates.
+
+
 ## 2.2 扩缩容
+
+
+
+Deployment是对ReplicaSet和Pod更高级的抽象。
+它使Pod拥有多副本，自愈，扩缩容、滚动升级等能力。
+
+ReplicaSet(副本集)是一个Pod的集合。
+它可以设置运行Pod的数量，确保任何时间都有指定数量的 Pod 副本在运行。 当某个 pod  被删除了,  Kubernetive 会自动生成 pod, 以达到 ReplucaSet 所设置的 pod 数量 
+
+
+通常我们不直接使用ReplicaSet，而是在Deployment中声明。
+
+```shell
+#创建deployment,部署3个运行nginx的Pod
+kubectl create deployment nginx-deployment --image=nginx:1.22 --replicas=3
+
+#查看deployment
+kubectl get deploy
+
+#查看replicaSet
+kubectl get rs 
+
+#删除deployment
+kubectl delete deploy nginx-deployment
+
+```
+
+![](image/Pasted%20image%2020230915141737.png)
+
 
 - 方式一：使用 K`ubectl edit` 命令,修改 `spec:replicas:n` 即可：
     - kubectl edit deployment nginx-deployment
@@ -308,7 +463,157 @@ pc-deployment-6696798b78-wvjd8   1/1     Running   0          5m23s
 
 
 
-## 2.3 镜像更新 
+- 手动缩放
+
+```sh
+#将副本数量调整为5
+kubectl scale deployment/nginx-deployment --replicas=5
+kubectl get deploy
+```
+
+- 自动缩放
+
+自动缩放通过增加和减少副本的数量，以保持所有 Pod 的平均 CPU 利用率不超过 75%。
+自动伸缩需要声明Pod的资源限制，同时使用 [Metrics Server](https://github.com/kubernetes-sigs/metrics-server#readme) 服务（K3s默认已安装）。
+本例仅用来说明`kubectl autoscale`命令的使用，完整示例参考：[HPA演示](https://kubernetes.io/zh-cn/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/)
+
+```sh
+#自动缩放
+kubectl autoscale deployment/nginx-auto --min=3 --max=10 --cpu-percent=75  // 自动缩放通过增加和减少副本的数量，以保持所有 Pod 的平均 CPU 利用率不超过 75%。
+
+#查看自动缩放
+kubectl get hpa
+
+#删除自动缩放
+kubectl delete hpa nginx-deployment
+```
+
+## 2.3 滚动更新 rollout
+
+
+
+deployment支持版本升级过程中的暂停、继续功能以及版本回退等诸多功能，下面具体来看.
+
+kubectl rollout： 版本升级相关功能，支持下面的选项：
+
+- status 显示当前升级状态
+- history 显示 升级历史记录
+- pause 暂停版本升级过程
+- resume 继续已经暂停的版本升级过程
+- restart 重启版本升级过程
+- undo 回滚到上一级版本（可以使用--to-revision回滚到指定版本）
+
+```sh
+# 17 查看当前升级版本的状态
+[root@k8s-master01 ~]# kubectl rollout status deploy pc-deployment -n dev
+deployment "pc-deployment" successfully rolled out
+
+# 18 查看升级历史记录
+[root@k8s-master01 ~]# kubectl rollout history deploy pc-deployment -n dev
+deployment.apps/pc-deployment
+REVISION  CHANGE-CAUSE
+1         kubectl create --filename=pc-deployment.yaml --record=true
+2         kubectl create --filename=pc-deployment.yaml --record=true
+3         kubectl create --filename=pc-deployment.yaml --record=true
+# 19 可以发现有三次版本记录，说明完成过两次升级
+
+
+# 20 版本回滚
+# 21 这里直接使用--to-revision=1回滚到了1版本， 如果省略这个选项，就是回退到上个版本，就是2版本
+[root@k8s-master01 ~]# kubectl rollout undo deployment pc-deployment --to-revision=1 -n dev
+deployment.apps/pc-deployment rolled back
+# Deployment 之所以能够实现版本的回退，就是通过记录下历史的 ReplicaSet 来实现的，一旦想回滚到那个版本，只需要将当前版本的 Pod 数量降为 0 ，然后将回退版本的 Pod 提升为目标数量即可。
+
+
+# 22 查看发现，通过nginx镜像版本可以发现到了第一版
+[root@k8s-master01 ~]# kubectl get deploy -n dev -o wide
+NAME            READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES         
+pc-deployment   4/4     4            4           74m   nginx        nginx:1.17.1   
+
+# 23 查看rs，发现第一个rs中有4个pod运行，后面两个版本的rs中pod为运行
+# 24 其实deployment之所以可是实现版本的回滚，就是通过记录下历史rs来实现的，
+# 25 一旦想回滚到哪个版本，只需要将当前版本pod数量降为0，然后将回滚版本的pod提升为目标数量就可以了
+[root@k8s-master01 ~]# kubectl get rs -n dev
+NAME                       DESIRED   CURRENT   READY   AGE
+pc-deployment-6696798b78   4         4         4       78m
+pc-deployment-966bf7f44    0         0         0       37m
+pc-deployment-c848d767     0         0         0       71m
+
+
+镜像升级
+kubectl set image deployment nginx-deployment nginx=nginx:1.17.2 --record
+kubectl set image deployment nginx-deployment nginx=nginx:1.20.2 --record
+
+```
+
+
+
+
+```sh
+#查看版本和Pod
+kubectl get deployment/nginx-deployment -owide
+kubectl get pods
+
+#更新容器镜像
+# 更新某个 depliymen 中 容器 的版本. 
+# 比如 更新 deoplyment name 为 nginx-depoly 的 depolyment  . 内涵三个 容器 , 容器名为 nginx, 用的是 nignx 版本名为 1.22 的 image. 我们想要把他 update 成 1.23 
+kubectl set image deployment/nginx-deployment nginx=nginx:1.23
+
+#滚动更新
+kubectl rollout status deployment/nginx-deployment
+
+#查看过程, 同步官产副本集的状态 
+kubectl get rs --watch  // rs 就是 repulicaSet 
+```
+
+其实本质上就是新生成一个 副本集,  <mark> 但是旧的副本集并没有被自动删除  </mark>
+新的副本集 中container的版本  为1.23
+
+![](image/Pasted%20image%2020230915143349.png)
+
+上面命令下 kubectl set image deployment/nginx-deployment nginx=nginx:1.23, 用 kubectl get rs --watch   时时观察 副本集的状态变换
+根据 name 可以观察 右新旧两个副本集, 就副本集中的 容器数量 在不断变化, 新副本集 中 也不断莲花. 就副本集 中 容器数量最后变为 0 0 0 . 最后新的副本集 完全代替的就得副本集 
+![](image/Pasted%20image%2020230915143403.png)
+
+----
+
+
+nginx-deployment 为 某个 deployment 的name, 前面要加上 deployment/ 才能表明 这个nginx-deployment 为某个 deployment 
+
+```sh
+#查看历史版本
+kubectl rollout history deployment/nginx-deployment
+
+#查看指定版本的信息
+kubectl rollout history deployment/nginx-deployment --revision=2
+
+#回滚到历史版本
+kubectl rollout undo deployment/nginx-deployment --to-revision=2
+```
+
+下面例子中 由 1.23 回滚到了 1.22 版本, 因为之前就是 1.22 版本
+![](image/Pasted%20image%2020230915144453.png)
+
+看到 revision=1 , 就是 第一次部署的时候, 是用的 1.22 版本 
+![](image/Pasted%20image%2020230915144548.png)
+
+可以看到 有两个副本集, 
+第一个副本集 为 版本2 的. 
+第二个副本集为 版本1 的, 第二个副本集, 以为已经被第一个副本集取代了 , 所以 内含有的 container 数量变为0 了. 
+
+![](image/Pasted%20image%2020230915144922.png)
+
+回滚, --to-revision=1 就是版本号 
+![](image/Pasted%20image%2020230915145106.png)
+
+之后 可以看到  旧的副本集又被启用了,  他的内含有的container 数量变为了 3 . 
+![](image/Pasted%20image%2020230915145125.png)
+
+![](image/Pasted%20image%2020230915145658.png)
+
+
+
+### 2.3.1 更新策略
 
 deployment支持两种更新策略: 重建更新Recreate 和滚动更新RollingUpdate, 可以通过strategy指定策略类型, 
 Deployment 的默认的镜像更新策略是 RollingUpdate（滚动更新），实际开发的时候，使用默认镜像更新策略即可。
@@ -329,7 +634,7 @@ strategy：指定新的Pod替换旧的Pod的策略， 支持两个属性：
 
 -----------
 
-### 2.3.1 重建更新Recreate
+#### 2.3.1.1 重建更新Recreate
 1. 编辑pc-deployment.yaml,在spec节点下添加更新策略
 
 ```
@@ -438,7 +743,7 @@ kubectl apply -f k8s-deploy.yaml
 
 
 
-### 2.3.2 滚动更新RollingUpdate,
+#### 2.3.1.2 滚动更新RollingUpdate,
 
 1. 编辑pc-deployment.yaml,在spec节点下添加更新策略
 
@@ -600,66 +905,9 @@ spec:
 ```
 
 kubectl apply -f k8s-deploy.yaml
-## 2.4 版本回退
-
-deployment支持版本升级过程中的暂停、继续功能以及版本回退等诸多功能，下面具体来看.
-
-kubectl rollout： 版本升级相关功能，支持下面的选项：
-
-- status 显示当前升级状态
-- history 显示 升级历史记录
-- pause 暂停版本升级过程
-- resume 继续已经暂停的版本升级过程
-- restart 重启版本升级过程
-- undo 回滚到上一级版本（可以使用--to-revision回滚到指定版本）
-
-```
-# 17 查看当前升级版本的状态
-[root@k8s-master01 ~]# kubectl rollout status deploy pc-deployment -n dev
-deployment "pc-deployment" successfully rolled out
-
-# 18 查看升级历史记录
-[root@k8s-master01 ~]# kubectl rollout history deploy pc-deployment -n dev
-deployment.apps/pc-deployment
-REVISION  CHANGE-CAUSE
-1         kubectl create --filename=pc-deployment.yaml --record=true
-2         kubectl create --filename=pc-deployment.yaml --record=true
-3         kubectl create --filename=pc-deployment.yaml --record=true
-# 19 可以发现有三次版本记录，说明完成过两次升级
 
 
-# 20 版本回滚
-# 21 这里直接使用--to-revision=1回滚到了1版本， 如果省略这个选项，就是回退到上个版本，就是2版本
-[root@k8s-master01 ~]# kubectl rollout undo deployment pc-deployment --to-revision=1 -n dev
-deployment.apps/pc-deployment rolled back
-# Deployment 之所以能够实现版本的回退，就是通过记录下历史的 ReplicaSet 来实现的，一旦想回滚到那个版本，只需要将当前版本的 Pod 数量降为 0 ，然后将回退版本的 Pod 提升为目标数量即可。
-
-
-# 22 查看发现，通过nginx镜像版本可以发现到了第一版
-[root@k8s-master01 ~]# kubectl get deploy -n dev -o wide
-NAME            READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES         
-pc-deployment   4/4     4            4           74m   nginx        nginx:1.17.1   
-
-# 23 查看rs，发现第一个rs中有4个pod运行，后面两个版本的rs中pod为运行
-# 24 其实deployment之所以可是实现版本的回滚，就是通过记录下历史rs来实现的，
-# 25 一旦想回滚到哪个版本，只需要将当前版本pod数量降为0，然后将回滚版本的pod提升为目标数量就可以了
-[root@k8s-master01 ~]# kubectl get rs -n dev
-NAME                       DESIRED   CURRENT   READY   AGE
-pc-deployment-6696798b78   4         4         4       78m
-pc-deployment-966bf7f44    0         0         0       37m
-pc-deployment-c848d767     0         0         0       71m
-
-
-镜像升级
-kubectl set image deployment nginx-deployment nginx=nginx:1.17.2 --record
-kubectl set image deployment nginx-deployment nginx=nginx:1.20.2 --record
-
-```
-
-
-
-
-## 2.5 金丝雀发布
+## 2.4 金丝雀发布
 
 Deployment控制器支持控制更新过程中的控制，如“暂停(pause)”或“继续(resume)”更新操作。
 
@@ -718,7 +966,7 @@ pc-deployment-6c9f56fcfb-rf84v   1/1     Running   0          37s
 
 
 
-### 2.5.1 例子
+### 2.4.1 例子
 
 
 ![](image/40.webp)
@@ -846,7 +1094,7 @@ curl 192.168.65.100:31009
 当然，这仅仅是金丝雀发布的简单演示罢了，实际开发中，还需要结合 Jenkins 的 Pipeline 才行！
 
 
-## 2.6 **删除Deployment**
+## 2.5 **删除Deployment**
 
 
 方式一：通过 kubectl delete 命令：

@@ -1,14 +1,45 @@
 
+==A Kubernetes service is a resource you create to make a single, constant point of entry to a group of pods providing the same service.== Each service has an IP address and port that never change while the service exists. Clients can open connections to that IP and Port and those connections are then routed to ones on the pod backing the service. This way, clients of service don't need to know the location of individual pods providing the service, allowing those pods to be moved around the cluster at any time.
+
+• A Service exposes one or many Pods via a stable, immortal, and internal IP address
+• It’s also accessible via cluster-internal DNS, {service}.{namespace}.svc.cluster.local
+Here: nginx.default.svc.cluster.local
+• The Service selects Pods based on the label key value selectors (here app=nginx).
+• A Service may expose multiple ports.
+• The ClusterIP can be declaratively specified, or dynamically allocated.
 # 1 Service介绍
 
 在kubernetes中，pod是应用程序的载体，我们可以通过pod的ip来访问应用程序，但是pod的ip地址不是固定的，这也就意味着不方便直接采用pod的ip对服务进行访问。
 
 为了解决这个问题，kubernetes提供了Service资源，Service会对提供同一个服务的多个pod进行聚合，并且提供一个统一的入口地址。通过访问Service的入口地址就能访问到后面的pod服务。
 
+通过上节课的学习，已经能够利用Deployment来创建一组Pod来提供具有高可用性的服务。
+
+虽然每个Pod都会分配一个单独的Pod IP，然而却存在如下两问题：
+    Pod IP 会随着Pod的重建产生变化
+    Pod IP 仅仅是集群内可见的虚拟IP，外部无法访问
+
+这样对于访问这个服务带来了难度。因此，kubernetes设计了Service来解决这个问题。
+Service可以看作是一组同类Pod对外的访问接口。借助Service，应用可以方便地实现服务发现和负载均衡。
+
+
+Service将运行在一组 [Pods](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/) 上的应用程序公开为网络服务的抽象方法。
+Service为一组 Pod 提供相同的 DNS 名，并且在它们之间进行负载均衡。
+Kubernetes 为 Pod 提供分配了IP 地址，但IP地址可能会发生变化。
+创建完service 后, 集群内的容器可以通过service名称访问服务，而不需要担心Pod的IP发生变化。
+
+
+Kubernetes Service 定义了这样一种抽象：
+service 的后端, 运行了一组可以替换的 Pod
+逻辑上的一组可以互相替换的 Pod，通常称为微服务。 
+Service 对应的 Pod 集合通常是通过选择算符来确定的。 
+举个例子，在一个Service中运行了3个nginx的副本。这些副本是可互换的，我们不需要关心它们调用了哪个nginx，也不需要关注 Pod的运行状态，只需要调用这个服务就可以了。
+
 
 ![img](https://gitee.com/yooome/golang/raw/main/22-k8s%E8%AF%A6%E7%BB%86%E6%95%99%E7%A8%8B-%E8%B0%83%E6%95%B4%E7%89%88/Kubenetes.assets/image-20200408194716912-1626783758946.png)
 
 
+---
 
 Service在很多情况下只是一个概念，真正起作用的其实是kube-proxy服务进程，每个Node节点上都运行着一个kube-proxy服务进程。当创建Service的时候会通过api-server向etcd写入创建的service的信息，而kube-proxy会基于监听的机制发现这种Service的变动，然后**它会将最新的Service信息转换成对应的访问规则**。
 
@@ -79,6 +110,24 @@ spec:
 
 
 
+---
+
+第二个例子
+
+在一个Service中运行了3个nginx的副本
+
+![](image/Pasted%20image%2020230917113850.png)
+
+一个Deployment 中 对应一个 ReplicaSet, 一个 ReplicaSet 中包有三个 Pod 
+
+用 kubectl get all 可以看到 
+- 有个 depolyment  : depolyment.apps/nginx-deploy 
+- 对应个副本集 replicaset.apps/nginx-depoly-xxx
+- 这个副本集有三个 pod, pod/xxxxx
+- 还有一个service,名字为 service/kubernetes 
+- 还有一个 kubernetes 自带的 对象: 
+
+
 # 2 访问Service
 
 ![](image/image%201.png)
@@ -89,7 +138,7 @@ spec:
     - 集群中 每个 节点/node 的公开服务的端口 
     - 集群外的主机 去访问这个 Service:  可以通过 `节点的ip: nodePort`
 - Port 是 Service 公开的端口 
-    - 集群内的其他Cluster 去访问这个 Service: 通过 `ClusterIP: port`,  ClusterIP 是 集群内的ip 
+    - 集群内的其他主机 去访问这个 Service: 通过 `ClusterIP: port`,  ClusterIP 是 集群内的ip 
     - 集群内的Pod 去访问这个 Service: 通过 `service 的名称: port` 
 - targetPort 
     - 是 Pod 中运行程序 用来监听的端口 
@@ -155,6 +204,8 @@ TCP  10.97.97.97:80 rr
 
 # 4 Service类型
 
+![](image/Pasted%20image%2020240711170952.png)
+
 
 Service的资源清单文件：
 
@@ -190,6 +241,31 @@ spec: # 描述
     - 通过返回 CNAME 和对应值，可以将服务映射到 externalName 字段的内容（如：foo.bar.example.com）。 无需创建任何类型代理
 
 
+ClusterlP(默认)
+- Used for communication between applications inside k8s cluster (Example: Frontend application accessing backend application)
+- 在集群的内部 IP 上公开 Service 。这种类型使得 Service 只能从集群内访问。不能从 Cluster外部进行访问
+
+NodePort
+- Used for accessing applications outside of of k8s cluster using Worker Node Ports (Example: Accessing Frontend application on browser) 
+- 使用 NAT 在集群中每个选定 Node 的相同端口上公开 Service 。使用`<NodeIP>:<NodePort>` 从集群外部访问 Service。是 ClusterIP 的超集。
+- 通过每个节点上的IP和静态端口NodePort暴露服务。 Nodeport服务会路由到自动创建的ClusterIP服务
+
+LoadBalancer
+- Primarily for Cloud Providers to integrate with their Load Balancer services (Example: AWS Elastic Load Balancer)
+- 在当前云中创建一个外部负载均衡器(如果支持的话)，并为 Service 分配一个固定的外部 IP 。是 NodePort 的超集。
+- 使用云提供商的负载均衡器向外部暴露服务。 外部负载均衡器可以将流量路由到自动创建的NodePort服务和ClusterIP服务商。 
+
+Ingress 
+- Ingress is an advanced load balancer which provides Context path based routing, SSL, SSL Redirect and many more (Example: AWS ALB)
+
+externalName
+- To access externally hosted apps in k8s cluster (Example: Access AWS RDS Database endpoint by application present inside k8s cluster)
+- 通过返回带有该名称的 CNAME 记录，使用任意名称(由 spec 中的`externalName`指定)公开 Service 。不使用代理。这种类型需要 `kube-dns` 的 v1.7 或更高版本。
+- 通过返回CName和对应值， 可以将服务映射到externalName字段的内容， 例如， foo.bar.example.com, 无需创建任何类型代理 
+
+---
+
+
 - OSI 网络模型和 TCP/IP 协议：
 
 ![](https://cdn.nlark.com/yuque/0/2022/png/513185/1648106612674-23a6449d-8e18-4760-a34d-daa282a68e0c.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_28%2Ctext_6K645aSn5LuZ%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10)
@@ -204,9 +280,159 @@ spec: # 描述
 
 
 
-# 5 Service使用
+## 4.1 ClusterIP 
 
-## 5.1 实验环境准备
+Cluster IP doesn't actually exist on any host, or anywhere.
+ClusterIP 是不存在的 虚拟的 ip地址 
+
+Each node runs a 'kube-proxy' container.
+每个节点中都用一个 kube-proxy 这个 container
+
+kube-proxy creates iptables rules on each host to redirect ClusterlP to pod(s) IPs:
+kube-proxy 会创造 iptables rules 在每个 host 中 （就是 node 中若干个hosts）, iptables rules 中储存的都是 ClusterIP . 然后这些hosts 就是知道了 其他pod 的 ClusterIP, 这样的话就可以导过去了
+
+![](image/Pasted%20image%2020240711152646.png)
+
+![](image/Pasted%20image%2020240711153029.png)
+
+----
+
+Iptables的弱点 
+
+![](image/Pasted%20image%2020240711153100.png)
+
+
+## 4.2 NodePort
+
+NodePort Service
+• To access our application outside of k8s cluster, we can use NodePort service.
+• Exposes the Service on each Worker Node's IP at a static port (nothing but NodePort). A ClusterIP Service, to which the NodePort Service routes, is automatically created.
+• Port Range: 30000-32767
+
+![](image/Pasted%20image%2020240711172003.png)
+
+
+访问流程 
+- Kube proxy forwards traffic to the nodePort service
+- nodePort service clusterlP service (automatically created when creating the nodePort service)
+- ClusterIP load balances as usual
+
+![](image/Pasted%20image%2020240711171742.png)
+
+
+
+## 4.3 LoadBalancer 
+
+$ kubectl run nginx --image=nginx --replicas 3 --port=80
+$ kubectl expose deployment nginx --type=LoadBaIancer
+$ kubectl get services -o=wide
+
+![](image/Pasted%20image%2020240711153545.png)
+
+
+可以看出 Service Type 是 LoadBalancer , 通过 annotations指明这个LoadBalancer的类型， 为 nlb
+![](image/Pasted%20image%2020240711153751.png)
+
+![](image/Pasted%20image%2020240711172116.png)
+
+## 4.4 Ingress
+
+![](image/Pasted%20image%2020240711172201.png)
+
+![](image/Pasted%20image%2020240711172219.png)
+
+
+
+# 5 访问Service
+
+![](image/image%201.png)
+
+![](image/Pasted%20image%2020240711171453.png)
+
+
+
+
+某个 service  可能涉及到的 中有 三个  Port 
+- nodePort
+    - 集群中 每个 节点/node 的公开服务的端口 
+    - 集群外的主机 去访问这个 Service:  可以通过 `节点的ip: nodePort`
+- Port 是 Service 公开的端口 
+    - 集群内的其他Cluster 去访问这个 Service: 通过 `ClusterIP: port`,  ClusterIP 是 集群内的ip 
+    - 集群内的Pod 去访问这个 Service: 通过 `service 的名称: port` 
+- targetPort 
+    - 是 Pod 中运行程序 用来监听的端口 
+    - 是这个  Pod 的 Port
+
+We can expose an application running on a set of PODs using different types of Services available in k8s.
+• ClusterlP
+• NodePort
+• LoadBalancer
+
+NodePort Service
+• To access our application outside of k8s cluster, we can use NodePort service.
+• Exposes the Service on each Worker Node's IP at a static port (nothing but NodePort).
+A ClusterIP Service, to which the NodePort Service routes, is automatically created.
+• Port Range: 30000-32767
+
+
+
+```sh
+
+# 集群外部外部主机去访问 集群内某个Pod：
+curl 192.168.56.109:32296。
+1.NodePort端口是随机的，范围为:30000-32767。
+2.集群中每一个主机节点的NodePort端口都可以访问。
+3.如果需要指定端口，不想随机产生，需要使用配置文件来声明。
+
+
+#集群内主机 去访问 集群内某个 pod
+curl 10.43.65.187:80
+
+#集群内容器 去访问 集群内某个 Pod
+kubectl run nginx-test --image=nginx:1.22 -it --rm -- sh
+curl nginx-service:80
+```
+
+## 5.1 访问流程 
+
+- Kube proxy forwards traffic to the nodePort service
+- nodePort service clusterlP service (automatically created when creating the nodePort service)
+- ClusterIP load balances as usual
+
+![](image/Pasted%20image%2020240711171742.png)
+
+
+
+
+# 6 kubectl expose 的使用 
+
+`[root@master ~]# kubectl expose deployment/nginx-deployment --name=svc-nginx1 --type=ClusterIP --port=80 --target-port=80 -n dev`
+
+
+ 使用 kubectl expose 命令 , 将之前已经生成好的 某个 depolyment (with name deployment/nginx-deployment) 公开为服务 
+
+ port是service访问端口,target-port是Pod端口 二者通常是一样的
+ - --port 80 , 指定service 的端口, 公开的服务端口 为 8080 
+ - --target-port 指定的 Pod 的端口 
+ --name=xxx, 指定生成 service 的名称 为nginx-service 
+ -n dev,  namespace 为 dev 
+
+
+
+## 6.1 --type: Service 的 Type的 取值
+
+- ClusterIP：
+    - 默认情况下, 如果没有指定 serciveType, 自动分配到的 就是 这个 service type 
+    - 这个Type 下只能在集群内部的主机, 访问到这个service 
+    - 将服务公开在集群内部。kubernetes会给服务分配一个集群内部的 IP，集群内的所有主机都可以通过这个Cluster-IP访问服务。集群内部的Pod可以通过service名称访问服务。
+- [NodePort](https://kubernetes.io/zh-cn/docs/concepts/services-networking/service/#type-nodeport)：
+    - 想要使得集群外部的主机 也能访问到 这个 service , 需要 , 使用 NodePort  这个 ServiceType 
+    - 通过每个节点的主机IP 和静态端口（NodePort）暴露服务。 集群的外部主机可以使用节点IP和NodePort访问服务。
+- [ExternalName](https://kubernetes.io/zh-cn/docs/concepts/services-networking/service/#externalname)：将集群外部的网络引入集群内部。
+- [LoadBalancer](https://kubernetes.io/zh-cn/docs/concepts/services-networking/service/#loadbalancer)：使用云提供商的负载均衡器向外部暴露服务。
+
+# 7 Service使用
+
 
 在使用service之前，首先利用Deployment创建出3个pod，注意要为pod设置`app=nginx-pod`的标签
 
@@ -260,9 +486,8 @@ pc-deployment-66cb59b984-wnncx   1/1     Running    10.244.1.40   node1    app=n
 ```
 
 
-## 5.2 define a selector that matches a set of pods
 
-# 6 Service类型
+# 8 Service创建
 
 
 Service的资源清单文件：
@@ -286,7 +511,8 @@ spec: # 描述
       nodePort: 31122 # 主机端口 主机=node
 ```
 
-## 6.1 创建 Service, Service Type是ClusterIP
+## 8.1 创建集群内部可访问的Service: --type=ClusterIP
+
 
 创建service-clusterip.yaml文件
 
@@ -357,14 +583,14 @@ TCP  10.97.97.97:80 rr
   ○ ③ 将 Kubernetes 中能分配 IP 地址的都看做是一个小型的、轻巧的、虚拟的 Linux 主机，10.96.12.53:6379 是因为我们没有在 service 中开启端口。
 
 
-### 6.1.1 查看 Service 的详细信息
+### 8.1.1 查看 Service 的详细信息
 
 
 kubectl describe svc xxx
 
 kubectl describe svc cluster-ip-svc
 
-### 6.1.2 Endpoint
+### 8.1.2 Endpoint
 
 - 为什么我们需要Service 关联endpoint 因为 我们需要 endpoint 这个 resource中定义的 ipadrrese
     - Service reosurce只定义了那些port 被暴露了出来， 却无法定义那些 ip addresse 中的 这个port 要被暴露出来 . 这时候就需要 endpoint 去 define a list of IP addresses and ports.
@@ -439,7 +665,7 @@ kubectl apply -f k8s-ep.yaml
 鉴于有些人认为像 MySQL 之类的不应该使用 Docker 、k8s 部署，而是应该直接部署在物理机上，那么就可以使用此种方式，将 MySQL 的地址配置在 EndPoint 中，对外暴露一个 Service ，这样 Kubernetes 中的资源（如：Pod）就可以直接使用暴露的 Service 名称来访问，这样可以实时剔除 EndPoint 的信息。换言之，反向代理集群外的服务。
 
 
-### 6.1.3 域名解析
+### 8.1.3 域名解析
 
 进入其中 Pod ，使用 nslookup 命令查询 DNS ：
 
@@ -462,7 +688,7 @@ nslookup -type=a cluster-ip-svc
 ![14.png](https://cdn.nlark.com/yuque/0/2022/png/513185/1648106727034-1764cada-ca97-4845-a696-1d826cc1abc6.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_22%2Ctext_6K645aSn5LuZ%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10%2Fformat%2Cwebp)
 
 
-### 6.1.4 **负载分发策略**
+### 8.1.4 **负载分发策略**
 
 对Service的访问被分发到了后端的Pod上去，目前kubernetes提供了两种负载分发策略：
 - 如果不定义，默认使用kube-proxy的策略，比如随机、轮询
@@ -506,7 +732,7 @@ service "service-clusterip" deleted
 ```
 
 
-### 6.1.5 会话保持技术 sessionAffinity
+### 8.1.5 会话保持技术 sessionAffinity
 
 基于客户端 IP 地址的会话保持模式，即来自同一个客户端发起的所有请求都尽最大可能转发到固定的一个 Pod 上，只需要在 spec 中添加 sessionAffinity: ClientIP 选项。 
 
@@ -537,12 +763,91 @@ spec:
 kubectl apply -f k8s-sessionAffinity.yaml
 
 
-### 6.1.6 删除 Service
-
-kubectl delete -f k8s-svc.yaml
 
 
-## 6.2 创建 HeadLiness 类型的 Service
+## 8.2 使用命令去创建service 
+
+
+用 --type=ClusterIP
+或者根本不加 --type, 因为默认就是 ClusterIP 
+
+### 8.2.1 例子1
+
+kubectl get svc 是固定的, svc 代表要去 get 某个 service ,  这个 service 的名字 就是 svc-nginx1
+
+```sh
+# 暴露Service
+[root@master ~]# kubectl expose deploy nginx --name=svc-nginx1 --type=ClusterIP --port=80 --target-port=80 -n dev
+service/svc-nginx1 exposed
+
+# 查看service
+[root@master ~]# kubectl get svc svc-nginx1 -n dev -o wide
+NAME         TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE     SELECTOR
+svc-nginx1   ClusterIP   10.109.179.231   <none>        80/TCP    3m51s   run=nginx
+# 这里产生了一个CLUSTER-IP，这就是service的IP，在Service的生命周期中，这个地址是不会变动的
+# 可以通过这个IP访问当前service对应的POD
+
+
+[root@master ~]# curl 10.109.179.231:80
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+.......
+</body>
+</html>
+
+```
+
+
+
+### 8.2.2 例子2
+
+
+```sh
+# port是service访问端口,target-port是Pod端口
+# 二者通常是一样的
+# 使用 kubectl expose 命令 , 将之前的部署 (depolyment) 公开为服务 
+# --port 80 , 指定service 的端口, 公开的服务端口 为 8080 
+#  --target-port 指定的  容器端口 
+# --name=xxx, 指定生成 service 的名称 为nginx-service  
+kubectl expose deployment/nginx-deployment \
+--name=nginx-service --type=ClusterIP --port=80 --target-port=80
+```
+
+
+```sh
+# port是service访问端口.target-port是Pod端口, 容器端口 二者通常是一样的
+# 使用 kubectl expose 命令 , 将之前的部署 (depolyment) 公开为服务 
+# --port 8080 , 指定service 的端口, 公开的服务端口 为 8080 
+#  --target-port 指定的  容器端口 
+# --name=xxx, 指定生成 service 的名称 为nginx-service  
+kubectl expose deployment/nginx-deployment \
+--name=nginx-service - --port=80 --target-port=80
+```
+
+![](image/Pasted%20image%2020230917114816.png)
+
+ClusterIP 代表为集群内部的IP,  集群内部, 都可以通过 10.43.228.137 这个IP, 来访问 nginx-service 这个 service 
+
+
+---
+
+进入 某个 nginx 的pod, 将首页显示的信息, 改为 显示 hello
+
+![](image/Pasted%20image%2020230917122336.png)
+
+然后再来访问这个服务, 多访问几次 
+可以看到 一会访问到的 另一个 pod 的 nignx, 一会访问到了 一个 pod 的 hallo , 这说明 实现了 service 在后端 Pod 中 实现了 负载均衡 
+![](image/Pasted%20image%2020230917122404.png)
+
+
+
+
+## 8.3 创建 HeadLiness 类型的 Service
 
 在某些场景中，开发人员可能不想使用Service提供的负载均衡功能，而希望自己来控制负载均衡策略，针对这种情况，kubernetes提供了HeadLiness Service，这类Service不会分配Cluster IP，如果想要访问service，只能通过service的域名进行查询。
 
@@ -614,7 +919,7 @@ service-headliness.dev.svc.cluster.local. 30 IN A 10.244.2.33
 
 
 
-## 6.3 创建 Service, Service Type是NodePort
+## 8.4 创建集群外部也可访问的Service: --type=NodePort 
 
 在之前的样例中，创建的Service的ip地址只有集群内部才可以访问，如果希望将Service暴露给集群外部使用，那么就要使用到另外一种类型的Service，称为NodePort类型。NodePort的工作原理其实就是**将service的端口映射到Node的一个端口上**，然后就可以通过`NodeIp:NodePort`来访问service了。
 
@@ -639,9 +944,10 @@ spec:
 
 ![18.png](https://cdn.nlark.com/yuque/0/2022/png/513185/1648106766906-b8efebc2-2c79-4443-a590-a52fd4752e45.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_33%2Ctext_6K645aSn5LuZ%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10%2Fformat%2Cwebp)
 
-### 6.3.1 部署 Service 
+### 8.4.1 例子
 
 
+例子1
 
 创建service-nodeport.yaml
 
@@ -676,7 +982,47 @@ service-nodeport   NodePort   10.105.64.191   <none>        80:30002/TCP  app=ng
 ```
 
 
-## 6.4 创建 Service, service Type 是LoadBalancer
+---
+
+例子2
+
+
+```sh
+# 上面创建的Service的type类型为ClusterIP，这个ip地址只用集群内部可访问
+# 如果需要创建外部也可以访问的Service，需要修改type为NodePort
+[root@master ~]# kubectl expose deploy nginx --name=svc-nginx2 --type=NodePort --port=80 --target-port=80 -n dev
+service/svc-nginx2 exposed
+
+# 此时查看，会发现出现了NodePort类型的Service，而且有一对Port（80:31928/TC）
+[root@master ~]# kubectl get svc  svc-nginx2  -n dev -o wide
+NAME          TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE    SELECTOR
+svc-nginx2    NodePort    10.100.94.0      <none>        80:31928/TCP   9s     run=nginx
+
+# 接下来就可以通过集群外的主机访问 节点IP:31928访问服务了
+# 例如在的电脑主机上通过浏览器访问下面的地址
+http://192.168.90.100:31928/
+```
+
+
+```sh
+# 随机产生主机端口
+kubectl expose deployment/nginx-deployment \
+--name=nginx-service2 --type=NodePort --port=8080 --target-port=80
+```
+
+
+![](image/image.png)
+![](image/Pasted%20image%2020230917123023.png)
+
+除了 内部访问的端口, 8081. kubenetes 会随机产生一个 内部访问的端口 31208 . 集群外部的主机可以通过 node节点的 ip + 外部访问端口 , 来访问这个服务
+
+下面是尝试从外部访问一下, 可以看到 访问成功 
+
+![](image/Pasted%20image%2020230917123353.png)
+
+
+
+## 8.5 创建 Service, service Type 是LoadBalancer
 
 LoadBalancer和NodePort很相似，目的都是向外部暴露一个端口，区别在于LoadBalancer会在集群的外部再来做一个负载均衡设备，而这个设备需要外部环境支持的，外部服务发送到这个设备上的请求，会被设备负载之后转发到集群中。
 
@@ -709,7 +1055,7 @@ spec:
 
 
 
-## 6.5 创建 Serivce, Service Type是External Name
+## 8.6 创建 Serivce, Service Type是External Name
 
 
 ExternalName类型的Service用于引入集群外部的服务，它通过`externalName`属性指定外部一个服务的地址，==然后在集群内部访问此service就可以访问到外部的服务了。==  但是需要注意目标服务的 `跨域` 问题。
@@ -755,9 +1101,17 @@ www.a.shifen.com.       30      IN      A       39.156.66.18
 www.a.shifen.com.       30      IN      A       39.156.66.14
 ```
 
+# 9 删除  service 
+
+```sh
+[root@master ~]# kubectl delete svc svc-nginx-1 -n dev 
+service "svc-nginx-1" deleted
+```
 
 
-# 7 Pod 指定自己的主机名
+kubectl delete -f k8s-svc.yaml
+
+# 10 Pod 指定自己的主机名
 
 Pod 中还可以设置 hostname 和 subdomain 字段，需要注意的是，一旦设置了 hostname ，那么该 Pod 的主机名就被设置为 hostname 的值，而 subdomain  需要和 svc 中的 name 相同。
 
@@ -849,269 +1203,3 @@ spec:
 - 如果 Pod 和 Pod 之间的访问：`Pod 的 hostname.Pod 的 subdomain.名称空间.svc.cluster.local`；换言之，nginx1 访问 nginx2 只需要这样：`nginx2.default-subdomain.default.svc.cluster.local` 即可（默认的名称空间可以省略，也可以这样 `nginx2.default-subdomain`）。
 
 - 那么 Pod 和 Service 的访问：`Pod 的 subdomain.名称空间.svc.cluster.local`。
-
-# 8 Ingress介绍
-
-在前面课程中已经提到，Service对集群之外暴露服务的主要方式有两种：NotePort和LoadBalancer，但是这两种方式，都有一定的缺点：
-- NodePort方式的缺点是会占用很多集群机器的端口，那么当集群服务变多的时候，这个缺点就愈发明显
-- LB方式的缺点是每个service需要一个LB，浪费、麻烦，并且需要kubernetes之外设备的支持
-
-基于这种现状，kubernetes提供了Ingress资源对象，Ingress只需要一个NodePort或者一个LB就可以满足暴露多个Service的需求。工作机制大致如下图表示：
-
-![img](https://gitee.com/yooome/golang/raw/main/22-k8s%E8%AF%A6%E7%BB%86%E6%95%99%E7%A8%8B-%E8%B0%83%E6%95%B4%E7%89%88/Kubenetes.assets/image-20200623092808049.png)
-
-实际上，Ingress相当于一个7层的负载均衡器，是kubernetes对反向代理的一个抽象，它的工作原理类似于Nginx，可以理解成在**Ingress里建立诸多映射规则，Ingress Controller通过监听这些配置规则并转化成Nginx的反向代理配置 , 然后对外部提供服务**。在这里有两个核心概念：
-- ingress：kubernetes中的一个对象，作用是定义请求如何转发到service的规则
-- ingress controller：具体实现反向代理及负载均衡的程序，对ingress定义的规则进行解析，根据配置的规则来实现请求转发，实现方式有很多，比如Nginx, Contour, Haproxy等等
-
-Ingress（以Nginx为例）的工作原理如下：
-1. 用户编写Ingress规则，说明哪个域名对应kubernetes集群中的哪个Service
-2. Ingress控制器动态感知Ingress服务规则的变化，然后生成一段对应的Nginx反向代理配置
-3. Ingress控制器会将生成的Nginx配置写入到一个运行着的Nginx服务中，并动态更新
-4. 到此为止，其实真正在工作的就是一个Nginx了，内部配置了用户定义的请求转发规则
-
-![img](https://gitee.com/yooome/golang/raw/main/22-k8s%E8%AF%A6%E7%BB%86%E6%95%99%E7%A8%8B-%E8%B0%83%E6%95%B4%E7%89%88/Kubenetes.assets/image-20200516112704764.png)
-
-
-# 9 Ingress使用
-
-## 9.1 环境准备 搭建ingress环境
-
-```
-# 创建文件夹
-[root@k8s-master01 ~]# mkdir ingress-controller
-[root@k8s-master01 ~]# cd ingress-controller/
-# 获取ingress-nginx，本次案例使用的是0.30版本
-[root@k8s-master01 ingress-controller]# wget https://raw.githubusercontent.com/kubernetes/ingress-nginx/nginx-0.30.0/deploy/static/mandatory.yaml
-[root@k8s-master01 ingress-controller]# wget https://raw.githubusercontent.com/kubernetes/ingress-nginx/nginx-0.30.0/deploy/static/provider/baremetal/service-nodeport.yaml
-# 修改mandatory.yaml文件中的仓库
-# 修改quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.30.0
-# 为quay-mirror.qiniu.com/kubernetes-ingress-controller/nginx-ingress-controller:0.30.0
-# 创建ingress-nginx
-[root@k8s-master01 ingress-controller]# kubectl apply -f ./
-# 查看ingress-nginx
-[root@k8s-master01 ingress-controller]# kubectl get pod -n ingress-nginx
-NAME                                           READY   STATUS    RESTARTS   AGE
-pod/nginx-ingress-controller-fbf967dd5-4qpbp   1/1     Running   0          12h
-# 查看service
-[root@k8s-master01 ingress-controller]# kubectl get svc -n ingress-nginx
-NAME            TYPE       CLUSTER-IP     EXTERNAL-IP   PORT(S)                      AGE
-ingress-nginx   NodePort   10.98.75.163   <none>        80:32240/TCP,443:31335/TCP   11h
-```
-
-
-## 9.2 准备service和pod
-
-为了后面的实验比较方便，创建如下图所示的模型
-
-![img](https://gitee.com/yooome/golang/raw/main/22-k8s%E8%AF%A6%E7%BB%86%E6%95%99%E7%A8%8B-%E8%B0%83%E6%95%B4%E7%89%88/Kubenetes.assets/image-20200516102419998.png)
-
-创建tomcat-nginx.yaml
-
-```
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-deployment
-  namespace: dev
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: nginx-pod
-  template:
-    metadata:
-      labels:
-        app: nginx-pod
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.17.1
-        ports:
-        - containerPort: 80
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: tomcat-deployment
-  namespace: dev
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: tomcat-pod
-  template:
-    metadata:
-      labels:
-        app: tomcat-pod
-    spec:
-      containers:
-      - name: tomcat
-        image: tomcat:8.5-jre10-slim
-        ports:
-        - containerPort: 8080
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: nginx-service
-  namespace: dev
-spec:
-  selector:
-    app: nginx-pod
-  clusterIP: None
-  type: ClusterIP
-  ports:
-  - port: 80
-    targetPort: 80
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: tomcat-service
-  namespace: dev
-spec:
-  selector:
-    app: tomcat-pod
-  clusterIP: None
-  type: ClusterIP
-  ports:
-  - port: 8080
-    targetPort: 8080
-```
-
-
-```
-# 创建
-[root@k8s-master01 ~]# kubectl create -f tomcat-nginx.yaml
-
-# 查看
-[root@k8s-master01 ~]# kubectl get svc -n dev
-NAME             TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)    AGE
-nginx-service    ClusterIP   None         <none>        80/TCP     48s
-tomcat-service   ClusterIP   None         <none>        8080/TCP   48s
-```
-
-
-## 9.3 Http代理
-
-创建ingress-http.yaml
-
-```
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  name: ingress-http
-  namespace: dev
-spec:
-  rules:
-  - host: nginx.itheima.com
-    http:
-      paths:
-      - path: /
-        backend:
-          serviceName: nginx-service
-          servicePort: 80
-  - host: tomcat.itheima.com
-    http:
-      paths:
-      - path: /
-        backend:
-          serviceName: tomcat-service
-          servicePort: 8080
-```
-
-```
-# 创建
-[root@k8s-master01 ~]# kubectl create -f ingress-http.yaml
-ingress.extensions/ingress-http created
-
-# 查看
-[root@k8s-master01 ~]# kubectl get ing ingress-http -n dev
-NAME           HOSTS                                  ADDRESS   PORTS   AGE
-ingress-http   nginx.itheima.com,tomcat.itheima.com             80      22s
-
-# 查看详情
-[root@k8s-master01 ~]# kubectl describe ing ingress-http  -n dev
-...
-Rules:
-Host                Path  Backends
-----                ----  --------
-nginx.itheima.com   / nginx-service:80 (10.244.1.96:80,10.244.1.97:80,10.244.2.112:80)
-tomcat.itheima.com  / tomcat-service:8080(10.244.1.94:8080,10.244.1.95:8080,10.244.2.111:8080)
-...
-
-# 接下来,在本地电脑上配置host文件,解析上面的两个域名到192.168.109.100(master)上
-# 然后,就可以分别访问tomcat.itheima.com:32240  和  nginx.itheima.com:32240 查看效果了
-```
-
-
-## 9.4 Https代理
-
-创建证书
-
-```
-# 生成证书
-openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/C=CN/ST=BJ/L=BJ/O=nginx/CN=itheima.com"
-# 创建密钥
-kubectl create secret tls tls-secret --key tls.key --cert tls.crt
-
-```
-
-
-创建ingress-https.yaml
-
-```
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  name: ingress-https
-  namespace: dev
-spec:
-  tls:
-    - hosts:
-      - nginx.itheima.com
-      - tomcat.itheima.com
-      secretName: tls-secret # 指定秘钥
-  rules:
-  - host: nginx.itheima.com
-    http:
-      paths:
-      - path: /
-        backend:
-          serviceName: nginx-service
-          servicePort: 80
-  - host: tomcat.itheima.com
-    http:
-      paths:
-      - path: /
-        backend:
-          serviceName: tomcat-service
-          servicePort: 8080
-```
-
-
-```
-# 创建
-[root@k8s-master01 ~]# kubectl create -f ingress-https.yaml
-ingress.extensions/ingress-https created
-
-# 查看
-[root@k8s-master01 ~]# kubectl get ing ingress-https -n dev
-NAME            HOSTS                                  ADDRESS         PORTS     AGE
-ingress-https   nginx.itheima.com,tomcat.itheima.com   10.104.184.38   80, 443   2m42s
-
-# 查看详情
-[root@k8s-master01 ~]# kubectl describe ing ingress-https -n dev
-...
-TLS:
-  tls-secret terminates nginx.itheima.com,tomcat.itheima.com
-Rules:
-Host              Path Backends
-----              ---- --------
-nginx.itheima.com  /  nginx-service:80 (10.244.1.97:80,10.244.1.98:80,10.244.2.119:80)
-tomcat.itheima.com /  tomcat-service:8080(10.244.1.99:8080,10.244.2.117:8080,10.244.2.120:8080)
-...
-
-# 下面可以通过浏览器访问https://nginx.itheima.com:31335 和 https://tomcat.itheima.com:31335来查看了
-```

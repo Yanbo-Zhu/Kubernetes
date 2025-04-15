@@ -34,6 +34,15 @@ Minikube是由Kubernetes社区维护的单机版的Kubernetes集群，支持macO
 
 # 2 相关操作 
 
+安装 minikube
+
+minikube start
+执行 minikube dashboard,  会弹出界面 
+minkube tunnel  : make pod  von aussen erreichbar 
+
+skafold run ( build image  )
+skaffold dev  ( build image + 一些其他的 )
+
 
 ## 2.1 取得版本咨询
 
@@ -131,9 +140,21 @@ kubernetes-dashboard   kubernetes-dashboard-57f4cb4545-w298w        1/1     Runn
 ```
 
 
+# 3 minikube tunnel 
+
+https://minikube.sigs.k8s.io/docs/commands/tunnel/
+
+Connect to LoadBalancer services
+
+tunnel creates a route to services deployed with type LoadBalancer and sets their Ingress to their ClusterIP. for a detailed example see [https://minikube.sigs.k8s.io/docs/tasks/loadbalancer](https://minikube.sigs.k8s.io/docs/tasks/loadbalancer)
 
 
-## 2.5 安装Dashboard
+The network is limited if using the Docker driver on Darwin, Windows, or WSL, and the Node IP is not reachable directly.
+Running minikube on Linux with the Docker driver will result in no tunnel being created.
+Services of type `NodePort` can be exposed via the `minikube service <service-name> --url` command. It must be run in a separate terminal window to keep the [tunnel](https://en.wikipedia.org/wiki/Port_forwarding#Local_port_forwarding) open. Ctrl-C in the terminal can be used to terminate the process at which time the network routes will be cleaned up.
+
+
+## 3.1 安装Dashboard
 
 
 `minikube dashboard --url --port=63373`
@@ -152,7 +173,7 @@ kubernetes-dashboard   kubernetes-dashboard-57f4cb4545-w298w        1/1     Runn
 
 ![](https://cdn.nlark.com/yuque/0/2022/png/28915315/1663750997376-411cbcc2-46a9-440a-b690-3cf4aa1b8780.png)
 
-## 2.6 其他
+## 3.2 其他
 
 kubectl get nodes -o wide ##可以查看到我们有了一个单节点的集群，IP地址
 kubectl get pods -o wide ##可以看到我在这里创建了两个NGINX pods和IP地址
@@ -160,7 +181,7 @@ ssh docker@192.168.99.101 ##现在我们ssh到我们的master节点，默认用�
 curl 172.17.0.7    ##在集群内部尝试访问NGINX成功输出界面
 
 
-# 3 Run “Hello” App
+# 4 Run “Hello” App
 
 啟動 echoserver
 
@@ -205,7 +226,7 @@ BODY:
 
 
 
-# 4 Uninstall minikube or upgrade K8s version
+# 5 Uninstall minikube or upgrade K8s version
 
 如果想要升級 k8s 版本、或者升級 minikube，最簡單的方法就是直接重新安裝。底下是在 macOS 從重新安裝 minikube 開始：
 

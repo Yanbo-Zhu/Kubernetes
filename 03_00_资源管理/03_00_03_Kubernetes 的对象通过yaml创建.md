@@ -206,7 +206,7 @@ metadata:
 # 6 使用声明式对象配置模拟上述效果
 
 
-## 1.1 使用yaml定义一个`Pod`
+## 6.1 使用yaml定义一个`Pod`
 
 [Pod配置模版](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/#using-pods)
 
@@ -235,7 +235,7 @@ kubectl delete -f my-pod.yaml
 ```
 
 
-## 6.1 部署一个 Deployment
+## 6.2 部署一个 Deployment
 
 
 vim deployment.yaml
@@ -268,7 +268,7 @@ spec:	        #这是关于该Deployment的描述，可以理解为你期待该D
 kubectl apply -f deployment.yaml
 
 
-## 6.2 暴露应用 
+## 6.3 暴露应用 
 
 vim service.yaml
 
