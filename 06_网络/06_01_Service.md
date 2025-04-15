@@ -138,7 +138,7 @@ spec:
     - 集群中 每个 节点/node 的公开服务的端口 
     - 集群外的主机 去访问这个 Service:  可以通过 `节点的ip: nodePort`
 - Port 是 Service 公开的端口 
-    - 集群内的其他Cluster 去访问这个 Service: 通过 `ClusterIP: port`,  ClusterIP 是 集群内的ip 
+    - 集群内的其他主机 去访问这个 Service: 通过 `ClusterIP: port`,  ClusterIP 是 集群内的ip 
     - 集群内的Pod 去访问这个 Service: 通过 `service 的名称: port` 
 - targetPort 
     - 是 Pod 中运行程序 用来监听的端口 

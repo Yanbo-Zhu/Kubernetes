@@ -40,7 +40,7 @@ This plugin will provide an easy way to SSH into Kubernetes Worker nodes running
 
 
 
-# 3 kubectl-plugins von luksa
+# 3 kubectl-plugins von luksa (我用这个比较多)
 https://github.com/luksa/kubectl-plugins
 
 
@@ -48,6 +48,8 @@ https://github.com/luksa/kubectl-plugins
 
 我安装在了 /home/yzh/kubectl-plugins
 export PATH=$PATH:$HOME/kubectl-plugins
+
+只能在 wsl 中使用 
 
 
 ## 3.2 kubectl ssh node
