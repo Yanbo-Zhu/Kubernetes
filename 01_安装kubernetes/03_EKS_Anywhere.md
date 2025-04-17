@@ -672,8 +672,6 @@ GitOps field not specified, clean up git repo skipped
 
 # 6 and A
 
-
-
 - Q: Local Cluster 建議的硬體資源是多少？
 
 > 底下是官方給的資訊：
