@@ -46,10 +46,10 @@ kubectl cluster-info dump
 
 # 3 查看 kube config 
 
-1 查看 现在哪个context 在被使用 
+## 3.1 查看 现在哪个context 在被使用 
 kubectl config current-context
 
-1 查看所有的 kube config context 
+## 3.2 查看所有的 kube config context 
 有星号的代表 正在被使用 
 
 Kubectl config get-contexts
@@ -65,8 +65,8 @@ CURRENT   NAME                                                 CLUSTER          
           e2x-eks-cluster-eks-dev-ex                           arn:aws:eks:eu-central-1:681290371536:cluster/eks-dev-ex   arn:aws:eks:eu-central-1:681290371536:cluster/eks-dev-ex
 ```
 
-2 
-kubectl config view, --cluster string, --context string, --minify(只展示 current context 的西街)
+## 3.3 只展示 某个 cluster 的 context 的细节
+kubectl config view, --cluster string, --context string, --minify(只展示 current context 的细节)
 
 kubectl config view
 ```
@@ -211,7 +211,7 @@ https://confluence.ivu.de/display/SYS/k8s+Single+Node+Clusters+by+Puppet+for+QS2
 3. Use command 'kubectl'
 4. Alternatively, use 'k0s kc' to make use of the command completion.
 
-## 4.2 本地安装kubectl_连接远程的cluster
+## 4.2 本地安装kubectl_连接远程的cluster  （重要 ）
 
 先 使用aws-adfs login 登录一个aws account 
 
@@ -353,9 +353,12 @@ There is a `kubectl` subcommand to check subject attributes, such as username, f
 `kubectl auth whoami`.
 
 
-# 6 EKS Cluster 相关 
+# 6 切换到另外一个 cluster 通过 kubectl config use-config
 
-## 6.1 查看这 aws account 有几个 eks cluster 
+kubectl config use-context arn:aws:eks:eu-central-1:681290371536:cluster/dev
+# 7 EKS Cluster 相关 
+
+## 7.1 查看这 aws account 有几个 eks cluster 
 
 先使用aws-adfs login 登录一个aws account 
 
@@ -382,7 +385,7 @@ There is a `kubectl` subcommand to check subject attributes, such as username, f
 
 ```
 
-## 6.2 Create or update a kubeconfig file for your cluster
+## 7.2 Create or update a kubeconfig file for your cluster
 
 https://docs.aws.amazon.com/eks/latest/userguide/create-kubeconfig.html
 
@@ -390,9 +393,9 @@ update-kubeconfig 的命令的说明
 https://docs.aws.amazon.com/cli/latest/reference/eks/update-kubeconfig.html
 
 ```
-aws eks update-kubeconfig --region region-code --name my-cluster
+aws eks update-kubeconfig --region <region-code> --name my-cluster
 
-aws --profile ivu-cloud-e2x eks update-kubeconfig --name titanic-e2x
+aws eks update-kubeconfig --profile ivu-cloud-e2x  --name titanic-e2x
 ```
 
 By default, the resulting configuration file is created at the default kubeconfig path (.kube) in your home directory or merged with an existing config file at that location. You can specify another path with the `--kubeconfig` option.
@@ -402,7 +405,7 @@ By default, the resulting configuration file is created at the default kubeconfi
 
 ```
 我用的是 
-aws --profile ivu-cloud-e20 eks update-kubeconfig --name main --kubeconfig c:\Users\yzh\.kube\config-e20-eks-cluster-main
+aws  eks update-kubeconfig --profile ivu-cloud-e20 --name main --kubeconfig c:\Users\yzh\.kube\config-e20-eks-cluster-main
 ```
 这个命令会将 elk cluster main 的信息 写入到  `c:\Users\yzh\.kube\config-e20-eks-cluster-main` 中
 
@@ -422,7 +425,7 @@ kube-system   kube-proxy-8w4g7                     1/1     Running   0          
 ```
 
 
-## 6.3 Continuous usage
+## 7.3 Continuous usage
 
 Assumed roles usually expire after a certain time (e.g. 1h). The following bash function may be of help to simplify the process of renewing the session and updating kubeconfig. Add these lines to your shell's rc file.
 
@@ -444,7 +447,6 @@ function refresh-eks-access
   aws-adfs login --profile $argv[1]
   aws --profile $argv[1] eks update-kubeconfig --name $argv[2]
 end
-
 ```
 
 in powershell 
