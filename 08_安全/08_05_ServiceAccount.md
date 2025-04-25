@@ -3,6 +3,7 @@ https://www.cnblogs.com/xzkzzz/p/9889173.html
 
 
 # 1 user Account 和 Service Account 的区别
+
 所有的kubernetes集群中账户分为两类，Kubernetes管理的serviceaccount(服务账户)和useraccount（用户账户）。
 大家都知道api server的集群的入口，对于kunbernetes的api server 是肯定不能随便访问。所以我们必须需要一些认证信息。例如：
 
@@ -39,6 +40,25 @@ Service Account而是给运行在Pod的容器、或者Pod使用的身份认证�
 
 # 3 Service Account
 
+在 Kubernetes 中，**Service Account（服务账户）** 是集群内部 Pod 访问 Kubernetes API 的身份凭证，
+
+| 功能                | 说明                                                                                                   |
+| ----------------- | ---------------------------------------------------------------------------------------------------- |
+| 🔐 **身份标识**       | 每个 Pod 默认会关联一个 Service Account，用来标识这个 Pod 的“身份”。                                                     |
+| 📜 **权限控制（RBAC）** | 可以通过绑定角色（Role / ClusterRole）来控制这个身份能访问哪些 Kubernetes 资源（例如读取 Secret、访问 ConfigMap、操作 Pod 等）。           |
+| 🔑 **凭证自动挂载**     | K8s 会自动将该 Service Account 的 token 以 volume 的形式挂载到 Pod 中，Pod 内部可以用它调用 Kubernetes API。                 |
+| 🤝 **与外部集成**      | 有些系统组件（如 Prometheus Operator、Helm、Ingress Controller 等）需要一个拥有特定权限的 Service Account 来与 API Server 交互。 |
+|                   |                                                                                                      |
+
+示例用途
+- 一个需要从 API Server 读取其他 Pod 信息的应用（比如控制器）需要一个 Service Account + 适当的权限。
+- 在使用 EKS 的时候，结合 IAM Roles for Service Accounts（IRSA）机制，可以让 Pod 使用 AWS 资源，比如访问 S3、DynamoDB。
+- Helm Charts 安装时常会创建特定权限的 Service Account。
+
+默认行为
+- 每个 Namespace 中 Kubernetes 会自动创建一个叫做 `default` 的 Service Account。
+- 如果你不显式指定，Pod 会自动使用 `default`。
+
 Whenever you access your Kubernetes cluster with kubectl, you are authenticated by Kubernetes with your user account. User accounts are meant to be used by humans. But when a pod running in the cluster wants to access the Kubernetes API server, it needs to use a service account instead. Service accounts are just like user accounts but for non-humans.
 
 Service Account为Pod中的进程和外部用户提供身份信息。
@@ -47,7 +67,7 @@ Service Account为Pod中的进程和外部用户提供身份信息。
 
 [![](https://img2018.cnblogs.com/blog/1076553/201811/1076553-20181102163217774-448705871.png)](https://img2018.cnblogs.com/blog/1076553/201811/1076553-20181102163217774-448705871.png)
 
- 我们在每一个namespace下看到都有一个secret,而我们看svc的时候，api server通过svc的访问访问的，他们的Endpoints是api server。
+ 我们在每一个namespace下看到都有一个secret, 而我们看svc的时候，api server通过svc的访问访问的，他们的Endpoints是api server。
  
 ```
 $ kubectl  get svc 
@@ -335,3 +355,55 @@ QoS Class:       BestEffort
 ......
 ```
 
+
+
+## 3.6 创建一个自定义的 ServiceAccount，并给它绑定一个能读取所有 Pod 的权限（通过 Role 和 RoleBinding）
+
+service-account-example.yaml
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: my-service-account
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+  namespace: default
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-pods-binding
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: my-service-account
+  namespace: default
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+```
+
+
+Pod使用这个 Service Account 示例
+你可以这样让一个 Pod 使用这个账号：
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sample-pod
+spec:
+  serviceAccountName: my-service-account
+  containers:
+  - name: busybox
+    image: busybox
+    command: ["sleep", "3600"]
+```
