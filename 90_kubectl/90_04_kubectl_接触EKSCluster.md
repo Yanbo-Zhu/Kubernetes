@@ -264,7 +264,7 @@ users:
 
 You are now connected as cluster admin to Kubernetes. Note that in this role, you may not only monitor, but also reconfigure and inherently misconfigure / destroy resources in the Kubernetes cluster. On the other hand, this is a Dedicated Single Node Cluster, hence the only system that may be harmed is this dedicated cluster and the IVU.plan environment within.
 
-> 出现了重大问题 
+出现了重大问题 
 在 windwos server 和 WSL 中都出现了这个问题
 我将 e2x-d3042f 和 e2x-d3204a 都 生成了 对应的 config file , 填入了Kubeconfig 中
 用 kubectl config use-context切换两种 config 都可以成功 
@@ -406,6 +406,8 @@ By default, the resulting configuration file is created at the default kubeconfi
 ```
 我用的是 
 aws  eks update-kubeconfig --profile ivu-cloud-e20 --name main --kubeconfig c:\Users\yzh\.kube\config-e20-eks-cluster-main
+
+aws eks update-kubeconfig --profile ivu-cloud-e2x --name dev --kubeconfig c:\Users\yzh\.kube\config-e2x-eks-cluster-dev-new
 ```
 这个命令会将 elk cluster main 的信息 写入到  `c:\Users\yzh\.kube\config-e20-eks-cluster-main` 中
 
