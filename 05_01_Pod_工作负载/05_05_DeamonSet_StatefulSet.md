@@ -100,14 +100,84 @@ daemonset.apps "pc-daemonset" deleted
 ```
 
 
-# 2 StatefulSet (sts)
+# 2 Stateless 
+
+**Jede Instanz der Anwendung unabhängig arbeitet und keine Informationen über vorherige Anfragen speichert.** Alle für die Verarbeitung nötigen Daten werden entweder über die Anfrage selbst mitgeliefert oder aus externen Systemen (z. B. Datenbanken) bezogen.
+
+Vorteile von stateless Applikationen in Kubernetes:
+- **Einfache horizontale Skalierung**: Da keine Zustände gespeichert werden, können Pods beliebig hinzugefügt oder entfernt werden.
+- **Hohe Verfügbarkeit**: Wenn ein Pod ausfällt, übernimmt ein anderer ohne Datenverlust.
+- **Einfacheres Deployment**: Rollende Updates sind möglich, ohne Sitzungsdaten zu verlieren.
+
+| Eigenschaft               | Stateless                       | Stateful                                     |
+| ------------------------- | ------------------------------- | -------------------------------------------- |
+| Speicherung von Daten     | Extern (z. B. Datenbank, Cache) | Lokal oder mit Persistent Volume             |
+| Austauschbarkeit der Pods | Ja – alle Instanzen sind gleich | Nein – Instanzen haben oft feste Identitäten |
+| Skalierbarkeit            | Sehr gut                        | Komplexer wegen Datenkonsistenz              |
+
+Das bedeutet: Die Hauptanwendungen sind so gestaltet, dass sie **keine eigenen Zustände verwalten** und somit ideal für den Betrieb in einer skalierbaren und fehlertoleranten Kubernetes-Umgebung geeignet sind.
+
+
+如果你想举个实际例子来讲解，也可以这样说：
+- 一个无状态的服务：REST API 服务，它每次从数据库查询用户数据，自己不保存用户状态。
+- 一个有状态的服务：数据库或用户会话管理器（Session Manager）。
+
+
+
+# 3 StatefulSet (sts)
 
 https://confluence.ivu.de/jira/browse/DEVOPS-3121
 https://blog.purestorage.com/purely-educational/deployment-vs-statefulset/
 
 > In contrast, StatefulSets provide unique and stable identities for each pod. This predictable identity is crucial for stateful applications like databases that rely on consistent network addresses and specific pod instances to manage data.
 
-## 2.1 基础知识 
+
+## 3.1 总结 
+
+
+> 应用的每个实例都需要**保留自己的状态数据**，并且在重启、扩缩容之后仍需要能够识别并访问**自己之前的数据或资源**。
+> **Zustand (State)** speichert und **bei Neustarts oder Skalierung den Zugriff auf ihre vorherigen Daten** benötigt. Jede Instanz hat eine **eindeutige Identität** und meist eine zugeordnete **persistente Speicherung**.
+
+
+例子 
+> 你部署了一个 `MySQL` 数据库，使用 StatefulSet 控制器，并给它绑定了一个持久卷。如果这个 Pod 崩溃了，Kubernetes 会重新启动一个具有相同名称的 Pod，并挂载同样的数据卷，确保数据不会丢失。
+> Ein `MySQL`-Pod wird als **StatefulSet** betrieben. Er hat eine eindeutige Identität (`mysql-0`) und ein fest zugewiesenes Volume. Wenn der Pod abstürzt oder neu gestartet wird, bleibt sein Name und seine Daten erhalten.
+
+- **需要持久化存储（Persistent Volume）**：  
+    应用的数据不能随着 Pod 的删除而丢失，因此需要使用 PVC（Persistent Volume Claim）绑定持久化存储。
+- **每个实例都有固定的身份（Stable Identity）**：  
+    通过 **StatefulSet** 控制器部署的 Pod 会有固定的名称（如 `db-0`, `db-1`），以及持久化的存储卷。
+- **顺序部署和删除**：  
+    与 Deployment 不同，StatefulSet 控制的 Pod 是**按顺序启动、更新和删除**的，确保服务依赖的顺序一致性。
+
+- **Persistente Speicherung erforderlich**  
+    → Daten werden nicht im Container selbst gespeichert, sondern über **Persistent Volume Claims (PVCs)** dauerhaft bereitgestellt.
+- **Stabile Identität**  
+    → Pods erhalten **feste Namen** (z. B. `db-0`, `db-1`), die bei einem Neustart beibehalten werden.    
+- **Geordnete Verwaltung**  
+    → Start, Update und Löschung der Pods erfolgt **in definierter Reihenfolge**, um Konsistenz sicherzustellen.
+
+
+ Kubernetes 中支持 Stateful 应用的机制：
+- **StatefulSet**：用于管理有状态的 Pod，提供：
+    - 稳定的网络标识（Pod 名称）
+    - 持久存储绑定（PVC 与特定 Pod 绑定）
+    - 有序的滚动更新    
+    -     → Kubernetes-Controller für zustandsbehaftete Anwendungen mit stabilen Netzwerknamen und persistenter Speicherung.
+- **PersistentVolume（PV）与 PersistentVolumeClaim（PVC）**：实现数据的持久化存储。     → Bereitstellung und Verwaltung von dauerhaftem Speicher für Pods.
+
+
+
+常见的 Stateful 应用示例：
+
+- 数据库服务（如 PostgreSQL、MySQL、MongoDB）
+- 缓存系统（如 Redis、RabbitMQ）
+- 分布式系统（如 Kafka、Elasticsearch）
+- 
+
+
+## 3.2 基础知识 
+
 
 ● Stateful 翻译为 有状态的 。
 ● Deployment 部署的应用称为无状态应用，StatefulSet 部署的应用称为有状态应用。
@@ -123,7 +193,7 @@ StatefulSet 用来管理某Pod集合的部署和扩缩, 并未这些Pod提供持
 ![](image/Pasted%20image%2020240711200103.png)
 
 
-## 2.2 StatefulSets 的优点 
+## 3.3 StatefulSets 的优点 
 
 StatefulSet is a [Kubernetes resource](https://blog.purestorage.com/perspectives/data-on-kubernetes-at-scale-why-your-csi-driver-cant-keep-up/) used to manage stateful applications. While Deployments excel at managing stateless applications, Kubernetes offers StatefulSets for stateful applications with specific requirements. StatefulSets guarantee ordering and uniqueness of pod lifecycles, making them ideal for applications that rely on:
 
@@ -131,7 +201,7 @@ StatefulSet is a [Kubernetes resource](https://blog.purestorage.com/perspectives
 - **Ordered, controlled updates:** StatefulSets pods are created, scaled, and deleted in a predetermined order, allowing for proper initialization and graceful shutdown of applications during deployments. This minimizes disruption and data loss.
 - **Persistent storage integration:** StatefulSets seamlessly integrate with Persistent Volume Claims (PVCs). PVCs act as requests for storage resources, allowing pods to access persistent storage that survives pod restarts or rescheduling. This ensures stateful applications maintain their data across the lifecycle of the pod.
 
-### 2.2.1 Stable network identities 
+### 3.3.1 Stable network identities 
 
 persistent pod identifier.
 persistent podname
@@ -150,7 +220,7 @@ When the StatefulSet controller creates a Pod, it adds a label, _statefulset.kub
 After restarting , reschueling a pod, 这 name of ne pod keep persistent, same as before 
 
 
-#### 2.2.1.1 database immer permanant identifier
+#### 3.3.1.1 database immer permanant identifier
 
 database can be identifi zirt 
 datan ins database Volume unter demselbent Name schreiben konnen 
@@ -158,7 +228,7 @@ datan ins database Volume unter demselbent Name schreiben konnen
 
 
 
-#### 2.2.1.2 pod有固定的名字可以更好的去做logAnalysis和Tracing 
+#### 3.3.1.2 pod有固定的名字可以更好的去做logAnalysis和Tracing 
 
 
 Having made some practical experiences with the Helm Chart in QS and other contexts, it became evident that traditional log analysis may still be required from time to time. After all, it's just a JBoss in a container.
@@ -178,12 +248,12 @@ StatefulSets may be a viable solution to this problem. Within StatefulSets, Pods
 我们仍然需要去refer to "the second background server"， 知道我们找到 一种方法 去使得 the number and lifecycle of Pods completely irrelevant
 In other words: it is still quite common to want to refer to "the second background server"  until we find the number and lifecycle of Pods completely irrelevant (with sufficiently high stability), we should try to maintain permanent deterministic Pod names.
 
-### 2.2.2 guarantee data persistence across pod rescheduling
+### 3.3.2 guarantee data persistence across pod rescheduling
 StatefulSets do not require persistent storage
 
 **Storage:** Deployments utilize ephemeral storage, meaning any data stored on the pod is lost when the pod is restarted or rescheduled. This is acceptable for stateless applications that don’t require persistent data storage. StatefulSets leverage PVCs to guarantee data persistence across pod rescheduling. PVCs act as requests for storage resources, allowing pods to access persistent storage that survives pod restarts or moves between nodes. This ensures stateful applications maintain their data across the pod lifecycle.
 
-### 2.2.3 perform deployments and scaling operations in a controlled and ordered manne
+### 3.3.3 perform deployments and scaling operations in a controlled and ordered manne
 Pods are scaled up und down sequentially, not instantly
 
 
@@ -193,14 +263,14 @@ Pods are scaled up und down sequentially, not instantly
 问题 slower rollout behaviour ？ 
 Die Skalierung in Statefuls kann man konfigurieren , 不需要担心 。 Kein Unterschied im Betrieb der Container als Depolyment und StatefulSets 
 
-## 2.3 StatefulSet Components
+## 3.4 StatefulSet Components
 
 A Headless Service 
 A StatefulSet
 A Persistent Volume
 
 
-## 2.4 StatefulSet 使用场景和限制
+## 3.5 StatefulSet 使用场景和限制
 
 ![](image/56.webp)
 
@@ -210,7 +280,7 @@ A Persistent Volume
     - 有序的、优雅的部署和缩放：按顺序地增加副本、减少副本，并在减少副本时执行清理。
     - 有序的、自动的滚动更新：按顺序自动地执行滚动更新。
 
-## 2.5 部署 StatefulSet
+## 3.6 部署 StatefulSet
 
 1
 创建 StatefulSet
@@ -273,7 +343,7 @@ curl nginx-svc
 
 kubectl delete -f k8s-sts.yaml
 
-## 2.6 Pod 的管理策略
+## 3.7 Pod 的管理策略
 
 StatefulSet 的 Pod 的管理策略（podManagementPolicy）分为：OrderedReady（有序启动，默认值） 和 Parallel（并发一起启动）。
 
@@ -325,7 +395,7 @@ spec:
 ```
 
 
-## 2.7 分区更新
+## 3.8 分区更新
 
 - StatefulSet 的更新策略：
     - OnDelete：删除之后才更新。
