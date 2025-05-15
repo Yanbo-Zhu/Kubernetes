@@ -11,7 +11,6 @@
 
 
 
-
 # 2 Check that kubectl is properly configured by getting the cluster state
 
 
