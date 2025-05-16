@@ -404,7 +404,9 @@ By default, the resulting configuration file is created at the default kubeconfi
 
 ```
 我用的是 
-aws  eks update-kubeconfig --profile ivu-cloud-e20 --name main --kubeconfig c:\Users\yzh\.kube\config-e20-eks-cluster-main
+aws eks update-kubeconfig --profile ivu-cloud-e20 --name main --kubeconfig c:\Users\yzh\.kube\config-e20-eks-cluster-main
+
+aws eks update-kubeconfig --profile ivu-cloud-e20 --name main --kubeconfig c:\Users\yzh\.kube\config-e20-eks-cluster-main-new
 
 aws eks update-kubeconfig --profile ivu-cloud-e2x --name dev --kubeconfig c:\Users\yzh\.kube\config-e2x-eks-cluster-dev-new
 ```
