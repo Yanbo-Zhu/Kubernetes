@@ -119,6 +119,13 @@ D) Set up [Cluster Autoscaler Auto-Discovery](https://github.com/kubernetes/auto
 - Open the Amazon EC2 console, and then choose EKS worker node Auto Scaling Groups from the navigation pane.
 - In the "Add/Edit Auto Scaling Group Tags" window, please make sure you enter the following tags by replacing 'awsExampleClusterName' with the name of your EKS cluster. Then, choose "Save".
 
+|Plugin|README|
+|---|---|
+|Key:|k8s.io/cluster-autoscaler/enabled|
+|Key:|k8s.io/cluster-autoscaler/'awsExampleClusterName'|
+Note: The keys for the tags that you entered don't have values. Cluster Autoscaler ignores any value set for the keys.
+
+
 
 
 ## 2.3 Using AWS Credentials  (not recommended)
