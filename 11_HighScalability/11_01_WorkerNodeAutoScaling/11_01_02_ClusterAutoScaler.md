@@ -393,7 +393,31 @@ Now the ASG tags must have the correct values as well as the custom tag to be su
 3. `my-custom-tag=custom-value`
 只有当 ASG 拥有这些完整的标签键值对时，才能被成功识别并用于自动扩缩容
 
+---
 
+给 Cluster Autoscaler 的 Deployment 添加标注，以便它识别自己管理的集群和 ASG：
+```yaml
+spec:
+  template:
+    metadata:
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+
+
+containers:
+  - name: cluster-autoscaler
+    image: k8s.gcr.io/autoscaling/cluster-autoscaler:<version>
+    command:
+      - ./cluster-autoscaler
+      - --cloud-provider=aws
+      - --namespace=kube-system
+      - --cluster-name=<your-cluster-name>
+      - --node-group-auto-discovery=asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-autoscaler/<your-cluster-name>
+      - --balance-similar-node-groups
+      - --skip-nodes-with-system-pods=false
+
+
+```
 
 ## 3.4 Pod Scheduling
 When scaling up from 0 nodes, the Cluster Autoscaler reads ASG tags to derive information about the specifications of the nodes i.e labels and taints in that ASG. Note that it does not actually apply these labels or taints - this is done by an AWS generated user data script. ==(The ASG tags only allow the Cluster Autoscaler to discover the Auto Scaling Groups and perform specific operations on the underlying nodes. However, these ASG tags do **not** automatically label or taint the nodes with the same values as the ASG tags.)==
@@ -429,6 +453,8 @@ Example tags:
 
 这个标签的含义是：该节点会有一个名为 `dedicated` 的污点，其值为 `true`，效果为 `NoSchedule`。Cluster Autoscaler 通过这些标签来**预测**新建节点的属性，从而决定是否扩容。注意：实际的 taint 是由 AWS 的启动脚本（UserData）应用到节点上的。
 
+**NOTE:** It is your responsibility to ensure such labels and/or taints are applied via the node's kubelet configuration at startup. Cluster Autoscaler will not set the node taints for you.
+你需要自行确保通过节点启动时的 kubelet 配置来应用这些标签和/或污点（taints）。Cluster Autoscaler 不会自动为你设置节点的污点。
 ## 3.5 用ASG 标签表明这个ASG中资源的大小, 帮助 CA 决策 
 
 
@@ -444,7 +470,9 @@ Example tags:
 - `<resource-name>` 是资源的名称，例如 `ephemeral-storage`（临时存储）。 这个示例表示：该 Auto Scaling Group 中的节点提供 100 GB 的临时存储空间（`ephemeral-storage`）。
 - 标签的值表示该资源的数量，其单位与 Pod 规范中 `resources` 字段中使用的单位相同（如 Mi、Gi、m、G 等）。
 
----
+
+## 3.6 使用ASG 标签可以指定自动扩缩容选项， 覆盖为整个 Cluster Autoscaler 设置的全局配置
+
 
 ASG 标签可以指定自动扩缩容选项，从而覆盖为整个 Cluster Autoscaler 设置的全局配置。
 ASG labels can specify autoscaling options, overriding the global cluster-autoscaler settings for the labeled ASGs. Those labels takes the same values format as the cluster-autoscaler command line flags they override (a float or a duration, encoded as string). Currently supported autoscaling options (and example values) are:
@@ -459,10 +487,14 @@ ASG labels can specify autoscaling options, overriding the global cluster-autosc
 * `k8s.io/cluster-autoscaler/node-template/autoscaling-options/ignoredaemonsetsutilization`: `true`
   (overrides `--ignore-daemonsets-utilization` value for that specific ASG)
 
-**NOTE:** It is your responsibility to ensure such labels and/or taints are applied via the node's kubelet configuration at startup. Cluster Autoscaler will not set the node taints for you.
-你需要自行确保通过节点启动时的 kubelet 配置来应用这些标签和/或污点（taints）。Cluster Autoscaler 不会自动为你设置节点的污点。
+`--scale-down-utilization-threshold` 是加在 这里的 https://github.com/kubernetes/autoscaler/blob/3d748040d9951522c5445abbf6fa379c5ec71ed2/cluster-autoscaler/cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml#L165
 
-Recommendations:
+
+
+
+
+
+## 3.7 Recommendations:
 - It is recommended to use a second tag like `k8s.io/cluster-autoscaler/<cluster-name>` when `k8s.io/cluster-autoscaler/enabled` is used across many clusters to prevent ASGs from different clusters having conflicts.
   An ASG must contain at least all the tags specified and as such secondary tags can differentiate between different clusters ASGs.
 - To prevent conflicts, do not provide a `--nodes` argument if `--node-group-auto-discovery` is specified.
@@ -476,7 +508,7 @@ Recommendations:
 
 
 
-## 3.6 Special note on GPU instances
+## 3.8 Special note on GPU instances
 
 节点上提供 GPU 资源的设备插件需要一些时间才能将 GPU 资源通告给集群，这可能会导致 Cluster Autoscaler 多次不必要地进行扩容。
 The device plugin on nodes that provides GPU resources can take some time to advertise the GPU resource to the cluster. This may cause Cluster Autoscaler to unnecessarily scale out multiple times.
@@ -609,7 +641,6 @@ resource "aws_autoscaling_group" "example" {
 
 
 
-
 ## 4.2 你使用 Launch Template/Conguration，请确保 userData 里正确注入了节点标签和污点, 才会将 真的把这些属性“设置”到新节点上。
 
 你在 Auto Scaling Group（ASG）里添加了这样的标签：
@@ -639,15 +670,10 @@ k8s.io/cluster-autoscaler/node-template/taint/dedicated = true:NoSchedule
 
  如果你没有在 userData 中设置这些参数会怎样？
 
-    节点实际上 没有 node-type=spot 标签，
-
-    节点也 没有 dedicated=true:NoSchedule 的 taint，
-
-    但是 Cluster Autoscaler 以为它们有！
-
-    结果：Pod 仍然调度不上，扩容白做了，系统出现“误判”。
-
-
+- 节点实际上 没有 node-type=spot 标签，
+- 节点也 没有 dedicated=true:NoSchedule 的 taint，
+- 但是 Cluster Autoscaler 以为它们有！
+- 结果：Pod 仍然调度不上，扩容白做了，系统出现“误判”。
 
 ---
 
@@ -704,7 +730,7 @@ resource "aws_launch_template" "example" {
 使用  launch_template  配合 Cluster Autoscaler 的标签（设置在 ASG 上）：
 Cluster Autoscaler 依赖以下标签识别节点组：
 如果你使用 eks_node_group 模块（EKS 托管节点组），你也可以通过 launch_template 块传入这个 Launch Template ID。
-```
+```yaml
 resource "aws_autoscaling_group" "example" {
   name_prefix = "example-asg"
   ...
