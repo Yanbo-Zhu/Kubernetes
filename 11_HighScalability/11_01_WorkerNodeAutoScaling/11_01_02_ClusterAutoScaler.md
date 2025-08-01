@@ -455,6 +455,7 @@ Example tags:
 
 **NOTE:** It is your responsibility to ensure such labels and/or taints are applied via the node's kubelet configuration at startup. Cluster Autoscaler will not set the node taints for you.
 你需要自行确保通过节点启动时的 kubelet 配置来应用这些标签和/或污点（taints）。Cluster Autoscaler 不会自动为你设置节点的污点。
+
 ## 3.5 用ASG 标签表明这个ASG中资源的大小, 帮助 CA 决策 
 
 
@@ -488,10 +489,6 @@ ASG labels can specify autoscaling options, overriding the global cluster-autosc
   (overrides `--ignore-daemonsets-utilization` value for that specific ASG)
 
 `--scale-down-utilization-threshold` 是加在 这里的 https://github.com/kubernetes/autoscaler/blob/3d748040d9951522c5445abbf6fa379c5ec71ed2/cluster-autoscaler/cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml#L165
-
-
-
-
 
 
 ## 3.7 Recommendations:
@@ -1501,7 +1498,7 @@ Similarly, if using the `balancing-label` flag, you should only choose labels wh
     - `InstancesDistribution` 控制 Spot 与 On-Demand 实例的比例：
         - 比如你可以设置 `OnDemandPercentageAboveBaseCapacity: 20`，意味着 20% 的新实例是按需购买，80% 是 Spot。
     - 还可以设置其他策略，比如希望优先使用 Spot、最多尝试几个替代类型等等。
-- See capacity [Allocation Strategies](https://docs.aws.amazon.com/autoscaling/ec2/userguide/asg-purchase-options.html#asg-allocation-strategies) in `MixedInstancesPolicy`
+- Set capacity [Allocation Strategies](https://docs.aws.amazon.com/autoscaling/ec2/userguide/asg-purchase-options.html#asg-allocation-strategies) in `MixedInstancesPolicy`
     - for information about how the ASG fulfils capacity from the specified instance types. It is recommended to use the capacity-optimized allocation strategy, which will automatically launch Spot Instances into the most available pools by looking at real-time capacity data and.
     - `lowest-price`：选最便宜的
     - `capacity-optimized`：优先选择容量最多（最稳定）的 Spot 实例池
